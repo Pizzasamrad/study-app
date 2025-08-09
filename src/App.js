@@ -1,5 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Clock, BookOpen, Brain, Plus, Play, Pause, RotateCcw, Save, Edit3, Trash2, Search, BarChart3, Star, Calendar } from 'lucide-react';
+import { Clock, BookOpen, Brain, Plus, Play, Pause, RotateCcw, Save, Edit3, Trash2, Search, BarChart3, Star, Calendar, Trophy, Award, Flame, Cloud, HardDrive } from 'lucide-react';
+import { auth, onAuthStateChanged } from './firebase';
+import AuthModal from './components/Auth/AuthModal';
+import UserProfile from './components/Auth/UserProfile';
+
+import AdvancedAnalytics from './components/AdvancedAnalytics';
+import * as storageService from './services/storageService';
+import './animations.css';
 
 const StudyApp = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -9,57 +16,114 @@ const StudyApp = () => {
   const [customInterval, setCustomInterval] = useState(25);
   const [isTimerActive, setIsTimerActive] = useState(false);
   const [blurts, setBlurts] = useState([]);
+  
+  // 🔥 NEW: Celebration state
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [celebrationData, setCelebrationData] = useState(null);
+  
+  // 🔥 NEW: Authentication state
+  const [user, setUser] = useState(null);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [storageMode, setStorageModeState] = useState(storageService.STORAGE_MODES.LOCAL);
 
-  // Generate device ID
-  const getDeviceId = () => {
-    let deviceId = localStorage.getItem('studyapp-device-id');
-    if (!deviceId) {
-      deviceId = 'device-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-      localStorage.setItem('studyapp-device-id', deviceId);
-    }
-    return deviceId;
-  };
-
-  const deviceId = getDeviceId();
-
-  // Simulate Firebase operations with localStorage
-  const saveToStorage = useCallback((collection, data) => {
-    const key = `${deviceId}-${collection}`;
-    const existing = JSON.parse(localStorage.getItem(key) || '[]');
-    const newData = [...existing, { ...data, id: Date.now().toString(), createdAt: new Date().toISOString() }];
-    localStorage.setItem(key, JSON.stringify(newData));
-    return newData;
-  }, [deviceId]);
-
-  const loadFromStorage = useCallback((collection) => {
-    const key = `${deviceId}-${collection}`;
-    return JSON.parse(localStorage.getItem(key) || '[]');
-  }, [deviceId]);
-
-  const updateInStorage = useCallback((collection, id, updates) => {
-    const key = `${deviceId}-${collection}`;
-    const existing = JSON.parse(localStorage.getItem(key) || '[]');
-    const updated = existing.map(item => 
-      item.id === id ? { ...item, ...updates, lastModified: new Date().toISOString() } : item
-    );
-    localStorage.setItem(key, JSON.stringify(updated));
-    return updated;
-  }, [deviceId]);
-
-  const deleteFromStorage = useCallback((collection, id) => {
-    const key = `${deviceId}-${collection}`;
-    const existing = JSON.parse(localStorage.getItem(key) || '[]');
-    const filtered = existing.filter(item => item.id !== id);
-    localStorage.setItem(key, JSON.stringify(filtered));
-    return filtered;
-  }, [deviceId]);
-
-  // Load data on mount
+  // Initialize storage mode and auth state
   useEffect(() => {
-    setFlashcards(loadFromStorage('flashcards'));
-    setStudyLogs(loadFromStorage('studyLogs'));
-    setBlurts(loadFromStorage('blurts'));
-  }, [deviceId, loadFromStorage]);
+    const initApp = async () => {
+      setIsLoading(true);
+      
+      // Initialize storage mode
+      const mode = await storageService.initStorageMode();
+      setStorageModeState(mode);
+      
+      // Set up auth state listener
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        setUser(user);
+        setIsLoading(false);
+      });
+      
+      return unsubscribe;
+    };
+    
+    initApp();
+  }, []);
+
+  // 🔥 NEW: Calculate study streak with milestone detection
+  const calculateStreak = useCallback((logs) => {
+    if (logs.length === 0) return { current: 0, milestone: null };
+
+    const sortedLogs = logs.sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date));
+    let currentStreak = 0;
+    let lastDate = new Date().toDateString();
+    
+    // Check if we studied today
+    const hasStudiedToday = sortedLogs.some(log => {
+      const logDate = new Date(log.createdAt || Date.now()).toDateString();
+      return logDate === new Date().toDateString();
+    });
+    
+    if (hasStudiedToday) currentStreak = 1;
+    
+    for (const log of sortedLogs) {
+      const logDate = new Date(log.createdAt || Date.now()).toDateString();
+      if (logDate !== lastDate) {
+        const daysDiff = Math.floor((new Date(lastDate) - new Date(logDate)) / (1000 * 60 * 60 * 24));
+        if (daysDiff === 1) {
+          currentStreak++;
+          lastDate = logDate;
+        } else if (daysDiff > 1) {
+          break;
+        }
+      }
+    }
+
+    // Check for milestone achievements
+    const milestones = [3, 7, 14, 30, 50, 100];
+    let milestone = null;
+    
+    for (const m of milestones) {
+      if (currentStreak === m) {
+        milestone = m;
+        break;
+      }
+    }
+
+    return { current: currentStreak, milestone };
+  }, []);
+
+  // 🔥 NEW: Trigger celebration
+  const triggerCelebration = useCallback((type, data) => {
+    setCelebrationData({ type, ...data });
+    setShowCelebration(true);
+    
+    // Auto-hide after 4 seconds
+    setTimeout(() => {
+      setShowCelebration(false);
+    }, 4000);
+  }, []);
+
+  // Load data when storage mode changes or on mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [cards, logs, blurtData] = await Promise.all([
+          storageService.getFlashcards(),
+          storageService.getStudyLogs(),
+          storageService.getBlurts()
+        ]);
+        
+        setFlashcards(cards);
+        setStudyLogs(logs);
+        setBlurts(blurtData);
+      } catch (error) {
+        console.error("Error loading data:", error);
+      }
+    };
+    
+    if (!isLoading) {
+      loadData();
+    }
+  }, [isLoading, storageMode]);
 
   // Pomodoro Timer Logic
   useEffect(() => {
@@ -74,7 +138,7 @@ const StudyApp = () => {
       setPomodoroTime(customInterval * 60);
     }
     return () => clearInterval(interval);
-  }, [isTimerActive, pomodoroTime]);
+  }, [isTimerActive, pomodoroTime, customInterval]);
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -113,7 +177,7 @@ const StudyApp = () => {
     );
   };
 
-  // 🚀 NEW: Enhanced Flashcard Management
+  // 🚀 Enhanced Flashcard Management with Celebrations and Cloud Sync
   const addFlashcard = async (front, back, subject) => {
     try {
       const newCard = {
@@ -126,8 +190,21 @@ const StudyApp = () => {
         interval: 1,
         nextReviewDate: new Date().toISOString()
       };
-      const updated = saveToStorage('flashcards', newCard);
-      setFlashcards(updated);
+      
+      const savedCard = await storageService.saveFlashcard(newCard);
+      
+      // Update local state with the new card
+      setFlashcards(prev => [...prev, savedCard]);
+      
+      // Celebrate first flashcard or milestone
+      if (flashcards.length === 0) {
+        triggerCelebration('first_card', { message: '🎯 Your first flashcard is ready! The journey to mastery begins now!' });
+      } else if ((flashcards.length + 1) % 10 === 0) {
+        triggerCelebration('milestone', { 
+          message: `🚀 BOOM! ${flashcards.length + 1} flashcards created! You're building an incredible knowledge base!`,
+          count: flashcards.length + 1 
+        });
+      }
     } catch (error) {
       console.error('Error adding flashcard:', error);
       alert('Error saving flashcard. Please try again.');
@@ -136,8 +213,12 @@ const StudyApp = () => {
 
   const updateFlashcard = async (id, updates) => {
     try {
-      const updated = updateInStorage('flashcards', id, updates);
-      setFlashcards(updated);
+      const updatedCard = await storageService.updateFlashcard(id, updates);
+      
+      // Update local state
+      setFlashcards(prev => 
+        prev.map(card => card.id === id ? { ...card, ...updatedCard } : card)
+      );
     } catch (error) {
       console.error('Error updating flashcard:', error);
       alert('Error updating flashcard. Please try again.');
@@ -146,15 +227,17 @@ const StudyApp = () => {
 
   const deleteFlashcard = async (id) => {
     try {
-      const updated = deleteFromStorage('flashcards', id);
-      setFlashcards(updated);
+      await storageService.deleteFlashcard(id);
+      
+      // Update local state
+      setFlashcards(prev => prev.filter(card => card.id !== id));
     } catch (error) {
       console.error('Error deleting flashcard:', error);
       alert('Error deleting flashcard. Please try again.');
     }
   };
 
-  // 🚀 NEW: Review flashcard with spaced repetition
+  // 🚀 Review flashcard with spaced repetition and celebrations
   const reviewFlashcard = async (id, difficulty) => {
     const card = flashcards.find(c => c.id === id);
     if (!card) return;
@@ -168,6 +251,14 @@ const StudyApp = () => {
     };
 
     await updateFlashcard(id, updates);
+    
+    // Celebrate review milestones
+    const newReviewCount = (card.reviewCount || 0) + 1;
+    if (newReviewCount === 1) {
+      triggerCelebration('first_review', { message: '🎊 First review crushed! Your brain is already getting stronger!' });
+    } else if (newReviewCount === 10) {
+      triggerCelebration('review_master', { message: '🏆 LEGEND STATUS! 10 reviews on this card - you\'re a memory master!' });
+    }
   };
 
   const addStudyLog = async (subject, duration, notes) => {
@@ -179,8 +270,31 @@ const StudyApp = () => {
         date: new Date().toLocaleDateString(),
         time: new Date().toLocaleTimeString()
       };
-      const updated = saveToStorage('studyLogs', newLog);
-      setStudyLogs(updated);
+      
+      const savedLog = await storageService.saveStudyLog(newLog);
+      
+      // Update local state
+      setStudyLogs(prev => [...prev, savedLog]);
+      
+      // Check for streak milestones with updated logs
+      const updatedLogs = [...studyLogs, savedLog];
+      const streakData = calculateStreak(updatedLogs);
+      
+      if (streakData.milestone) {
+        const messages = {
+          3: "🔥 3-DAY STREAK! You're on fire! The momentum is building!",
+          7: "⚡ WEEK WARRIOR! 7 days straight - you're unstoppable!",
+          14: "💪 TWO WEEK TITAN! Your dedication is absolutely incredible!",
+          30: "👑 MONTH MASTER! 30 days of pure commitment - you're a legend!",
+          50: "🚀 FIFTY DAY PHENOMENON! Your consistency is mind-blowing!",
+          100: "🏆 CENTURY CHAMPION! 100 days of excellence - you're LEGENDARY!"
+        };
+        
+        triggerCelebration('streak', {
+          message: messages[streakData.milestone],
+          streak: streakData.milestone
+        });
+      }
     } catch (error) {
       console.error('Error adding study log:', error);
       alert('Error saving study log. Please try again.');
@@ -200,8 +314,11 @@ const StudyApp = () => {
         subject,
         timestamp: new Date().toLocaleString()
       };
-      const updated = saveToStorage('blurts', newBlurt);
-      setBlurts(updated);
+      
+      const savedBlurt = await storageService.saveBlurt(newBlurt);
+      
+      // Update local state
+      setBlurts(prev => [...prev, savedBlurt]);
     } catch (error) {
       console.error('Error adding blurt:', error);
       alert('Error saving brain blurt. Please try again.');
@@ -210,8 +327,10 @@ const StudyApp = () => {
 
   const deleteBlurt = async (id) => {
     try {
-      const updated = deleteFromStorage('blurts', id);
-      setBlurts(updated);
+      await storageService.deleteBlurt(id);
+      
+      // Update local state
+      setBlurts(prev => prev.filter(blurt => blurt.id !== id));
     } catch (error) {
       console.error('Error deleting blurt:', error);
       alert('Error deleting brain blurt. Please try again.');
@@ -220,37 +339,155 @@ const StudyApp = () => {
 
   const dueCards = getDueCards();
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">StudyMaster Pro</h1>
-          <p className="text-gray-600">AI-powered study companion with spaced repetition</p>
-          <p className="text-sm text-green-600 mt-2">✨ Your data is private to this device</p>
+
+
+  // 🔥 NEW: Celebration Modal Component
+  const CelebrationModal = ({ show, data, onClose }) => {
+    if (!show || !data) return null;
+
+    const getIcon = () => {
+      switch (data.type) {
+        case 'streak': return <Flame className="text-orange-500" size={48} />;
+        case 'first_card': return <Brain className="text-blue-500" size={48} />;
+        case 'milestone': return <Trophy className="text-yellow-500" size={48} />;
+        case 'first_review': return <Star className="text-purple-500" size={48} />;
+        case 'review_master': return <Award className="text-green-500" size={48} />;
+        default: return <Trophy className="text-yellow-500" size={48} />;
+      }
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 backdrop-blur-lg">
+        <div className="bg-gradient-to-br from-purple-900/90 to-indigo-900/90 backdrop-blur-xl rounded-3xl p-8 max-w-md mx-4 text-center shadow-2xl border border-white/20 transform transition-all duration-500 animate-float">
+          {/* Celebration particles */}
+          <div className="absolute inset-0 overflow-hidden rounded-3xl">
+            <div className="absolute top-4 left-4 w-2 h-2 bg-yellow-400 rounded-full animate-ping"></div>
+            <div className="absolute top-8 right-6 w-1 h-1 bg-pink-400 rounded-full animate-pulse"></div>
+            <div className="absolute bottom-6 left-8 w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce"></div>
+            <div className="absolute bottom-4 right-4 w-2 h-2 bg-green-400 rounded-full animate-ping animation-delay-2000"></div>
+          </div>
+          
+          <div className="mb-6 flex justify-center relative z-10">
+            <div className="p-6 bg-gradient-to-br from-yellow-400/20 to-orange-500/20 rounded-3xl backdrop-blur-sm border border-white/30 animate-glow">
+              {getIcon()}
+            </div>
+          </div>
+          
+          <h2 className="text-3xl font-black bg-gradient-to-r from-yellow-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent mb-4 animate-gradient-x">
+            🎉 Amazing! 🎉
+          </h2>
+          
+          <p className="text-white/90 mb-8 leading-relaxed text-lg font-medium">{data.message}</p>
+          
+          <button
+            onClick={onClose}
+            className="bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-white px-10 py-4 rounded-2xl font-bold text-lg hover:from-pink-600 hover:via-purple-600 hover:to-indigo-600 transition-all duration-300 shadow-2xl hover:shadow-pink-500/50 transform hover:scale-110 hover:-translate-y-1"
+          >
+            ✨ Awesome! ✨
+          </button>
         </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 relative overflow-hidden">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-pink-400 to-purple-600 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-yellow-400 to-pink-600 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
+        <div className="absolute top-40 left-40 w-80 h-80 bg-gradient-to-br from-blue-400 to-green-600 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
+      </div>
+      {/* 🔥 NEW: Celebration Modal */}
+      <CelebrationModal 
+        show={showCelebration} 
+        data={celebrationData} 
+        onClose={() => setShowCelebration(false)} 
+      />
+      
+      {/* Authentication Modal */}
+      <AuthModal 
+        isOpen={authModalOpen} 
+        onClose={() => setAuthModalOpen(false)} 
+        onAuthSuccess={(user) => {
+          setStorageModeState(storageService.getStorageMode());
+          setAuthModalOpen(false);
+        }} 
+      />
+      
+      <div className="container mx-auto px-6 py-8 relative z-10">
+        {/* Header with Auth */}
+        <div className="bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 p-8 mb-8 shadow-2xl">
+          <div className="flex justify-between items-center">
+            <div className="text-left">
+              <div className="relative inline-block">
+                <h1 className="text-6xl md:text-7xl font-black bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-3 animate-gradient-x relative z-10">
+                  StudyMaster Pro
+                </h1>
+                <div className="absolute inset-0 bg-gradient-to-r from-cyan-400/20 via-purple-400/20 to-pink-400/20 blur-3xl animate-pulse"></div>
+              </div>
+              <p className="text-white/90 text-xl font-medium">🚀 Smart study companion with spaced repetition and analytics ✨</p>
+              <div className="flex items-center mt-4">
+                <div className={`flex items-center px-4 py-2 rounded-full text-sm font-bold backdrop-blur-sm border-2 ${
+                  storageMode === storageService.STORAGE_MODES.CLOUD 
+                    ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400/50' 
+                    : 'bg-emerald-500/20 text-emerald-300 border-emerald-400/50'
+                }`}>
+                  {storageMode === storageService.STORAGE_MODES.CLOUD 
+                    ? <><Cloud size={16} className="mr-2" /> ☁️ Cloud Synced</> 
+                    : <><HardDrive size={16} className="mr-2" /> 💾 Local Storage</>
+                  }
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+              {!user && (
+                <button
+                  onClick={() => setAuthModalOpen(true)}
+                  className="bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-white px-8 py-4 rounded-2xl hover:from-pink-600 hover:via-purple-600 hover:to-indigo-600 transition-all duration-300 font-bold shadow-2xl hover:shadow-pink-500/25 transform hover:-translate-y-1 hover:scale-105"
+                >
+                  ✨ Sign In
+                </button>
+              )}
+              <UserProfile 
+                user={user} 
+                onLogout={() => {
+                  setStorageModeState(storageService.getStorageMode());
+                }} 
+              />
+            </div>
+          </div>
+        </div>
+
+
 
         {/* Navigation */}
         <nav className="flex justify-center mb-8">
-          <div className="bg-white rounded-lg shadow-md p-2 flex space-x-2">
+          <div className="bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 p-4 flex space-x-2 shadow-2xl">
             {[
-              { id: 'dashboard', label: 'Dashboard', icon: BookOpen },
-              { id: 'flashcards', label: 'Flashcards', icon: Brain },
-              { id: 'pomodoro', label: 'Pomodoro', icon: Clock },
-              { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-              { id: 'blurts', label: 'Brain Blurts', icon: Edit3 }
-            ].map(({ id, label, icon: Icon }) => (
+              { id: 'dashboard', label: 'Dashboard', icon: BookOpen, color: 'from-orange-400 to-pink-500', emoji: '🏠' },
+              { id: 'flashcards', label: 'Flashcards', icon: Brain, color: 'from-purple-400 to-indigo-500', emoji: '🧠' },
+              { id: 'pomodoro', label: 'Pomodoro', icon: Clock, color: 'from-green-400 to-teal-500', emoji: '⏰' },
+              { id: 'analytics', label: 'Analytics', icon: BarChart3, color: 'from-blue-400 to-cyan-500', emoji: '📊' },
+              { id: 'blurts', label: 'Brain Blurts', icon: Edit3, color: 'from-yellow-400 to-orange-500', emoji: '💡' }
+            ].map(({ id, label, icon: Icon, color, emoji }) => (
               <button
                 key={id}
                 onClick={() => setActiveTab(id)}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-md transition-colors ${
+                className={`flex items-center space-x-3 px-6 py-4 rounded-2xl transition-all duration-300 font-bold relative overflow-hidden group ${
                   activeTab === id 
-                    ? 'bg-blue-500 text-white' 
-                    : 'text-gray-600 hover:bg-gray-100'
+                    ? `bg-gradient-to-r ${color} text-white shadow-2xl transform scale-110 shadow-${color.split('-')[1]}-500/50` 
+                    : 'text-white/80 hover:text-white hover:bg-white/10 hover:scale-105'
                 }`}
               >
-                <Icon size={18} />
-                <span>{label}</span>
+                <div className="relative z-10 flex items-center space-x-3">
+                  <span className="text-xl">{emoji}</span>
+                  <Icon size={22} />
+                  <span className="hidden md:block">{label}</span>
+                </div>
+                {activeTab === id && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent animate-pulse"></div>
+                )}
               </button>
             ))}
           </div>
@@ -259,77 +496,118 @@ const StudyApp = () => {
         {/* Dashboard */}
         {activeTab === 'dashboard' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h3 className="text-xl font-semibold mb-4 flex items-center">
-                <Brain className="mr-2 text-blue-500" />
-                Flashcards
-              </h3>
-              <p className="text-gray-600 mb-2">Total: {flashcards.length} cards</p>
-              <p className="text-red-600 mb-4">Due: {dueCards.length} cards</p>
+            <div className="bg-gradient-to-br from-purple-500/20 to-indigo-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-6 hover:shadow-2xl hover:shadow-purple-500/25 transition-all duration-300 transform hover:-translate-y-2 hover:scale-105 group animate-slide-up relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-4 bg-gradient-to-br from-purple-400 to-indigo-500 rounded-2xl shadow-lg group-hover:animate-bounce">
+                  <Brain className="text-white" size={28} />
+                </div>
+                <div className="text-right">
+                  <p className="text-3xl font-black text-white">{flashcards.length}</p>
+                  <p className="text-sm text-purple-200">🧠 Total Cards</p>
+                </div>
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Flashcards</h3>
+              <p className="text-purple-200 mb-4">
+                {dueCards.length > 0 ? `🔥 ${dueCards.length} cards due for review` : '✨ All caught up!'}
+              </p>
               <button
                 onClick={() => setActiveTab('flashcards')}
-                className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors"
+                className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 text-white py-3 rounded-2xl hover:from-purple-600 hover:to-indigo-700 transition-all duration-300 font-bold shadow-lg hover:shadow-purple-500/50 transform hover:scale-105"
               >
-                Study Now
+                🚀 Study Now
               </button>
             </div>
 
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h3 className="text-xl font-semibold mb-4 flex items-center">
-                <Clock className="mr-2 text-green-500" />
-                Study Sessions
-              </h3>
-              <p className="text-gray-600 mb-4">Logged: {studyLogs.length} sessions</p>
+            <div className="bg-gradient-to-br from-green-500/20 to-teal-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-6 hover:shadow-2xl hover:shadow-green-500/25 transition-all duration-300 transform hover:-translate-y-2 hover:scale-105 group animate-slide-up relative overflow-hidden" style={{animationDelay: '0.1s'}}>
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-4 bg-gradient-to-br from-green-400 to-teal-500 rounded-2xl shadow-lg group-hover:animate-spin">
+                  <Clock className="text-white" size={28} />
+                </div>
+                <div className="text-right">
+                  <p className="text-3xl font-black text-white">{studyLogs.length}</p>
+                  <p className="text-sm text-green-200">⏰ Sessions</p>
+                </div>
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Study Sessions</h3>
+              <p className="text-green-200 mb-4">
+                {studyLogs.length > 0 ? '🔥 Keep up the momentum!' : '🌟 Start your first session'}
+              </p>
               <button
                 onClick={() => setActiveTab('pomodoro')}
-                className="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition-colors"
+                className="w-full bg-gradient-to-r from-green-500 to-teal-600 text-white py-3 rounded-2xl hover:from-green-600 hover:to-teal-700 transition-all duration-300 font-bold shadow-lg hover:shadow-green-500/50 transform hover:scale-105"
               >
-                Start Timer
+                ⚡ Start Timer
               </button>
             </div>
 
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h3 className="text-xl font-semibold mb-4 flex items-center">
-                <BarChart3 className="mr-2 text-purple-500" />
-                Analytics
-              </h3>
-              <p className="text-gray-600 mb-4">Total: {studyLogs.reduce((sum, log) => sum + log.duration, 0)} minutes</p>
+            <div className="bg-gradient-to-br from-blue-500/20 to-cyan-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-6 hover:shadow-2xl hover:shadow-blue-500/25 transition-all duration-300 transform hover:-translate-y-2 hover:scale-105 group animate-slide-up relative overflow-hidden" style={{animationDelay: '0.2s'}}>
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-4 bg-gradient-to-br from-blue-400 to-cyan-500 rounded-2xl shadow-lg group-hover:animate-pulse">
+                  <BarChart3 className="text-white" size={28} />
+                </div>
+                <div className="text-right">
+                  <p className="text-3xl font-black text-white">{studyLogs.reduce((sum, log) => sum + log.duration, 0)}</p>
+                  <p className="text-sm text-blue-200">📊 Minutes</p>
+                </div>
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Analytics</h3>
+              <p className="text-blue-200 mb-4">
+                {studyLogs.length > 0 ? '📈 Track your progress' : '📊 No data yet'}
+              </p>
               <button
                 onClick={() => setActiveTab('analytics')}
-                className="bg-purple-500 text-white px-4 py-2 rounded-md hover:bg-purple-600 transition-colors"
+                className="w-full bg-gradient-to-r from-blue-500 to-cyan-600 text-white py-3 rounded-2xl hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 font-bold shadow-lg hover:shadow-blue-500/50 transform hover:scale-105"
               >
-                View Stats
+                📊 View Stats
               </button>
             </div>
 
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h3 className="text-xl font-semibold mb-4 flex items-center">
-                <Edit3 className="mr-2 text-orange-500" />
-                Brain Blurts
-              </h3>
-              <p className="text-gray-600 mb-4">Notes: {blurts.length} entries</p>
+            <div className="bg-gradient-to-br from-yellow-500/20 to-orange-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-6 hover:shadow-2xl hover:shadow-yellow-500/25 transition-all duration-300 transform hover:-translate-y-2 hover:scale-105 group animate-slide-up relative overflow-hidden" style={{animationDelay: '0.3s'}}>
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-4 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl shadow-lg group-hover:animate-bounce">
+                  <Edit3 className="text-white" size={28} />
+                </div>
+                <div className="text-right">
+                  <p className="text-3xl font-black text-white">{blurts.length}</p>
+                  <p className="text-sm text-yellow-200">💡 Notes</p>
+                </div>
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Brain Blurts</h3>
+              <p className="text-yellow-200 mb-4">
+                {blurts.length > 0 ? '💭 Capture your thoughts' : '✨ Start taking notes'}
+              </p>
               <button
                 onClick={() => setActiveTab('blurts')}
-                className="bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600 transition-colors"
+                className="w-full bg-gradient-to-r from-yellow-500 to-orange-600 text-white py-3 rounded-2xl hover:from-yellow-600 hover:to-orange-700 transition-all duration-300 font-bold shadow-lg hover:shadow-yellow-500/50 transform hover:scale-105"
               >
-                Quick Note
+                💡 Quick Note
               </button>
             </div>
 
             {/* Recent Study Logs */}
-            <div className="md:col-span-2 lg:col-span-4 bg-white rounded-lg shadow-md p-6">
-              <h3 className="text-xl font-semibold mb-4">Recent Study Sessions</h3>
+            <div className="md:col-span-2 lg:col-span-4 bg-gradient-to-br from-indigo-500/20 to-purple-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-8 shadow-2xl animate-slide-up relative overflow-hidden" style={{animationDelay: '0.4s'}}>
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12 -translate-x-full hover:translate-x-full transition-transform duration-1000"></div>
+              <h3 className="text-2xl font-bold text-white mb-6 flex items-center">
+                📚 Recent Study Sessions
+              </h3>
               {studyLogs.length === 0 ? (
-                <p className="text-gray-500">No study sessions logged yet. Start studying to track your progress!</p>
+                <div className="text-center py-8">
+                  <div className="text-6xl mb-4">📖</div>
+                  <p className="text-white/80 text-lg">No study sessions logged yet. Start studying to track your progress!</p>
+                </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-4">
                   {studyLogs.slice(0, 5).map(log => (
-                    <div key={log.id} className="border-l-4 border-blue-500 pl-4 py-2">
+                    <div key={log.id} className="bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 p-4 hover:bg-white/15 transition-all duration-200">
                       <div className="flex justify-between items-start">
                         <div>
-                          <h4 className="font-semibold">{log.subject}</h4>
-                          <p className="text-sm text-gray-600">{log.duration} minutes - {log.date} at {log.time}</p>
-                          {log.notes && <p className="text-sm text-gray-700 mt-1">{log.notes}</p>}
+                          <h4 className="font-bold text-white text-lg mb-1">📖 {log.subject}</h4>
+                          <p className="text-white/80 font-medium">⏰ {log.duration} minutes - {log.date} at {log.time}</p>
+                          {log.notes && <p className="text-white/70 mt-2 italic">💭 {log.notes}</p>}
                         </div>
                       </div>
                     </div>
@@ -366,9 +644,11 @@ const StudyApp = () => {
           />
         )}
 
-        {/* 🚀 NEW: Analytics Tab */}
+
+
+        {/* Analytics Tab */}
         {activeTab === 'analytics' && (
-          <AnalyticsTab studyLogs={studyLogs} flashcards={flashcards} />
+          <AdvancedAnalytics studyLogs={studyLogs} flashcards={flashcards} />
         )}
 
         {/* Brain Blurts Tab */}
@@ -467,78 +747,86 @@ const FlashcardsTab = ({ flashcards, dueCards, onAddFlashcard, onUpdateFlashcard
     const card = cards[currentCard];
     
     return (
-      <div className="max-w-2xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <button
-            onClick={() => {
-              setStudyMode(false);
-              setReviewMode(false);
-              setCurrentCard(0);
-            }}
-            className="text-blue-500 hover:text-blue-700"
-          >
-            ← Back to Cards
-          </button>
-          <span className="text-gray-600">
-            {currentCard + 1} of {cards.length} {reviewMode ? '(Due for Review)' : ''}
-          </span>
+      <div className="max-w-4xl mx-auto space-y-8">
+        <div className="bg-gradient-to-br from-indigo-500/20 to-purple-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-6 shadow-2xl">
+          <div className="flex justify-between items-center">
+            <button
+              onClick={() => {
+                setStudyMode(false);
+                setReviewMode(false);
+                setCurrentCard(0);
+              }}
+              className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-6 py-3 rounded-2xl hover:from-gray-600 hover:to-gray-700 transition-all duration-300 font-bold shadow-lg hover:shadow-gray-500/50 transform hover:scale-105 flex items-center"
+            >
+              ← 🏠 Back to Cards
+            </button>
+            <span className="text-white font-bold text-lg">
+              📊 {currentCard + 1} of {cards.length} {reviewMode ? '🔥 (Due for Review)' : '⚡ (Study Mode)'}
+            </span>
+          </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-lg p-8 min-h-64 flex flex-col justify-center items-center text-center">
-          <div className="mb-4 flex items-center space-x-2">
-            <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
-              {card.subject}
+        <div className="bg-gradient-to-br from-blue-500/20 to-cyan-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-12 min-h-96 flex flex-col justify-center items-center text-center shadow-2xl">
+          <div className="mb-6 flex flex-wrap items-center justify-center gap-3">
+            <span className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-4 py-2 rounded-full font-bold">
+              📚 {card.subject}
             </span>
             {card.reviewCount > 0 && (
-              <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
-                Reviewed {card.reviewCount} times
+              <span className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-full font-bold">
+                ⭐ Reviewed {card.reviewCount} times
               </span>
             )}
           </div>
           
-          <div className="text-xl mb-6 min-h-16">
-            {showAnswer ? card.back : card.front}
+          <div className="text-2xl font-bold text-white mb-8 min-h-24 flex items-center justify-center leading-relaxed max-w-2xl">
+            {showAnswer ? `💡 ${card.back}` : `❓ ${card.front}`}
           </div>
 
           {!showAnswer ? (
             <button
               onClick={() => setShowAnswer(true)}
-              className="bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600 mb-4"
+              className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-10 py-4 rounded-2xl hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 font-bold text-lg shadow-lg hover:shadow-blue-500/50 transform hover:scale-105 mb-6"
             >
-              Show Answer
+              ✨ Show Answer
             </button>
           ) : (
-            <div className="space-y-4">
-              <p className="text-sm text-gray-600 mb-4">How well did you remember this?</p>
-              <div className="flex space-x-2 mb-4">
+            <div className="space-y-6">
+              <p className="text-white/80 mb-6 text-lg font-medium">🤔 How well did you remember this?</p>
+              <div className="flex flex-col sm:flex-row gap-4 mb-6">
                 <button 
                   onClick={() => handleReview('hard')}
-                  className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
+                  className="bg-gradient-to-r from-red-500 to-pink-600 text-white px-8 py-4 rounded-2xl hover:from-red-600 hover:to-pink-700 transition-all duration-300 font-bold shadow-lg hover:shadow-red-500/50 transform hover:scale-105"
                 >
-                  Hard
+                  😰 Hard
                 </button>
                 <button 
                   onClick={() => handleReview('medium')}
-                  className="bg-yellow-500 text-white px-4 py-2 rounded-md hover:bg-yellow-600"
+                  className="bg-gradient-to-r from-yellow-500 to-orange-600 text-white px-8 py-4 rounded-2xl hover:from-yellow-600 hover:to-orange-700 transition-all duration-300 font-bold shadow-lg hover:shadow-yellow-500/50 transform hover:scale-105"
                 >
-                  Medium
+                  🤔 Medium
                 </button>
                 <button 
                   onClick={() => handleReview('easy')}
-                  className="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
+                  className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-8 py-4 rounded-2xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 font-bold shadow-lg hover:shadow-green-500/50 transform hover:scale-105"
                 >
-                  Easy
+                  😎 Easy
                 </button>
               </div>
             </div>
           )}
 
-          <div className="flex space-x-4 mt-4">
-            <button onClick={prevCard} className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600">
-              Previous
+          <div className="flex flex-col sm:flex-row gap-4 mt-8">
+            <button 
+              onClick={prevCard} 
+              className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-8 py-3 rounded-2xl hover:from-gray-600 hover:to-gray-700 transition-all duration-300 font-bold shadow-lg hover:shadow-gray-500/50 transform hover:scale-105"
+            >
+              ⬅️ Previous
             </button>
-            <button onClick={nextCard} className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600">
-              Next
+            <button 
+              onClick={nextCard} 
+              className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-8 py-3 rounded-2xl hover:from-gray-600 hover:to-gray-700 transition-all duration-300 font-bold shadow-lg hover:shadow-gray-500/50 transform hover:scale-105"
+            >
+              Next ➡️
             </button>
           </div>
         </div>
@@ -547,67 +835,77 @@ const FlashcardsTab = ({ flashcards, dueCards, onAddFlashcard, onUpdateFlashcard
   }
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Flashcards</h2>
-        <div className="space-x-4">
-          {dueCards.length > 0 && (
+    <div className="max-w-7xl mx-auto space-y-8">
+      {/* Header Section */}
+      <div className="bg-gradient-to-br from-purple-500/20 to-indigo-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-8 shadow-2xl">
+        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center space-y-6 lg:space-y-0">
+          <div>
+            <h2 className="text-4xl font-black text-white mb-2 flex items-center">
+              🧠 Flashcards
+            </h2>
+            <p className="text-white/80 text-lg">Master your knowledge with spaced repetition</p>
+          </div>
+          
+          {/* Action Buttons */}
+          <div className="flex flex-wrap gap-4">
+            {dueCards.length > 0 && (
+              <button
+                onClick={() => {
+                  setReviewMode(true);
+                  setCurrentCard(0);
+                }}
+                className="bg-gradient-to-r from-red-500 to-pink-600 text-white px-6 py-3 rounded-2xl hover:from-red-600 hover:to-pink-700 transition-all duration-300 font-bold shadow-lg hover:shadow-red-500/50 transform hover:scale-105 flex items-center"
+              >
+                <Calendar className="mr-2" size={20} />
+                🔥 Review Due ({dueCards.length})
+              </button>
+            )}
+            {filteredCards.length > 0 && (
+              <button
+                onClick={() => {
+                  setStudyMode(true);
+                  setCurrentCard(0);
+                }}
+                className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3 rounded-2xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 font-bold shadow-lg hover:shadow-green-500/50 transform hover:scale-105 flex items-center"
+              >
+                <Play className="mr-2" size={20} />
+                ⚡ Study Mode
+              </button>
+            )}
             <button
-              onClick={() => {
-                setReviewMode(true);
-                setCurrentCard(0);
-              }}
-              className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 flex items-center"
+              onClick={() => setShowForm(true)}
+              className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-6 py-3 rounded-2xl hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 font-bold shadow-lg hover:shadow-blue-500/50 transform hover:scale-105 flex items-center"
             >
-              <Calendar className="mr-2" size={16} />
-              Review Due ({dueCards.length})
+              <Plus className="mr-2" size={20} />
+              ✨ Add Card
             </button>
-          )}
-          {filteredCards.length > 0 && (
-            <button
-              onClick={() => {
-                setStudyMode(true);
-                setCurrentCard(0);
-              }}
-              className="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 flex items-center"
-            >
-              <Play className="mr-2" size={16} />
-              Study Mode
-            </button>
-          )}
-          <button
-            onClick={() => setShowForm(true)}
-            className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 flex items-center"
-          >
-            <Plus className="mr-2" size={16} />
-            Add Card
-          </button>
+          </div>
         </div>
       </div>
 
       {/* Search and Filter */}
-      <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-        <div className="flex space-x-4">
+      <div className="bg-gradient-to-br from-blue-500/20 to-cyan-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-6 shadow-2xl">
+        <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
-              <Search className="absolute left-3 top-3 text-gray-400" size={16} />
+              <Search className="absolute left-4 top-4 text-white/60" size={20} />
               <input
                 type="text"
-                placeholder="Search flashcards..."
+                placeholder="🔍 Search flashcards..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border rounded-md"
+                className="w-full pl-12 pr-4 py-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent font-medium"
               />
             </div>
           </div>
           <select
             value={selectedSubject}
             onChange={(e) => setSelectedSubject(e.target.value)}
-            className="px-4 py-2 border rounded-md"
+            className="px-6 py-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl text-white font-medium focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
           >
             {subjects.map(subject => (
-              <option key={subject} value={subject}>
-                {subject === 'all' ? 'All Subjects' : subject}
+              <option key={subject} value={subject} className="bg-gray-800 text-white">
+                {subject === 'all' ? '📚 All Subjects' : `📖 ${subject}`}
               </option>
             ))}
           </select>
@@ -615,106 +913,107 @@ const FlashcardsTab = ({ flashcards, dueCards, onAddFlashcard, onUpdateFlashcard
       </div>
 
       {showForm && (
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h3 className="text-lg font-semibold mb-4">
-            {editingCard ? 'Edit Flashcard' : 'Add New Flashcard'}
+        <div className="bg-gradient-to-br from-green-500/20 to-emerald-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-8 shadow-2xl">
+          <h3 className="text-3xl font-bold text-white mb-6 flex items-center">
+            {editingCard ? '✏️ Edit Flashcard' : '✨ Create New Flashcard'}
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             <div>
-              <label className="block text-sm font-medium mb-2">Question/Front</label>
+              <label className="block text-white font-bold mb-3 text-lg">❓ Question/Front</label>
               <textarea
                 value={front}
                 onChange={(e) => setFront(e.target.value)}
-                className="w-full p-3 border rounded-md resize-none"
-                rows="3"
-                placeholder="Enter the question..."
+                className="w-full p-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl resize-none text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent font-medium"
+                rows="4"
+                placeholder="What's the question or prompt?"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">Answer/Back</label>
+              <label className="block text-white font-bold mb-3 text-lg">💡 Answer/Back</label>
               <textarea
                 value={back}
                 onChange={(e) => setBack(e.target.value)}
-                className="w-full p-3 border rounded-md resize-none"
-                rows="3"
-                placeholder="Enter the answer..."
+                className="w-full p-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl resize-none text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent font-medium"
+                rows="4"
+                placeholder="What's the answer or explanation?"
               />
             </div>
           </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">Subject</label>
+          <div className="mb-6">
+            <label className="block text-white font-bold mb-3 text-lg">📚 Subject</label>
             <input
               type="text"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              className="w-full p-3 border rounded-md"
+              className="w-full p-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent font-medium"
               placeholder="e.g., Math, History, Science..."
             />
           </div>
-          <div className="flex space-x-4">
+          <div className="flex flex-col sm:flex-row gap-4">
             <button
               onClick={handleSubmit}
               disabled={saving}
-              className="bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600 disabled:opacity-50"
+              className="bg-gradient-to-r from-emerald-500 to-green-600 text-white px-8 py-4 rounded-2xl hover:from-emerald-600 hover:to-green-700 transition-all duration-300 font-bold shadow-lg hover:shadow-emerald-500/50 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
             >
-              {saving ? 'Saving...' : editingCard ? 'Update Card' : 'Add Card'}
+              {saving ? '⏳ Saving...' : editingCard ? '✅ Update Card' : '🚀 Create Card'}
             </button>
             <button
               onClick={cancelEdit}
-              className="bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600"
+              className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-8 py-4 rounded-2xl hover:from-gray-600 hover:to-gray-700 transition-all duration-300 font-bold shadow-lg hover:shadow-gray-500/50 transform hover:scale-105 flex items-center justify-center"
             >
-              Cancel
+              ❌ Cancel
             </button>
           </div>
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredCards.map(card => {
           const isDue = card.nextReviewDate && card.nextReviewDate <= new Date().toISOString();
           return (
-            <div key={card.id} className={`bg-white rounded-lg shadow-md p-4 border-l-4 ${isDue ? 'border-red-500' : 'border-blue-500'}`}>
-              <div className="flex justify-between items-start mb-2">
-                <div className="flex space-x-2">
-                  <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
-                    {card.subject}
+            <div key={card.id} className={`bg-gradient-to-br ${isDue ? 'from-red-500/20 to-pink-600/20' : 'from-indigo-500/20 to-purple-600/20'} backdrop-blur-xl rounded-3xl border border-white/20 p-6 shadow-2xl hover:shadow-${isDue ? 'red' : 'indigo'}-500/25 transition-all duration-300 transform hover:-translate-y-1 hover:scale-105 group animate-bounce-in relative overflow-hidden`}>
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+              <div className="flex justify-between items-start mb-4 relative z-10">
+                <div className="flex flex-wrap gap-2">
+                  <span className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-3 py-1 rounded-full text-sm font-bold">
+                    📚 {card.subject}
                   </span>
                   {isDue && (
-                    <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-xs">
-                      Due
+                    <span className="bg-gradient-to-r from-red-500 to-pink-600 text-white px-3 py-1 rounded-full text-sm font-bold animate-pulse">
+                      🔥 Due
                     </span>
                   )}
                   {card.reviewCount > 0 && (
-                    <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
-                      {card.reviewCount} reviews
+                    <span className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-1 rounded-full text-sm font-bold">
+                      ⭐ {card.reviewCount} reviews
                     </span>
                   )}
                 </div>
-                <div className="flex space-x-1">
+                <div className="flex space-x-2">
                   <button
                     onClick={() => startEdit(card)}
-                    className="text-blue-500 hover:text-blue-700"
+                    className="p-2 bg-blue-500/20 backdrop-blur-sm rounded-xl text-blue-300 hover:text-blue-100 hover:bg-blue-500/30 transition-all duration-200 transform hover:scale-110"
                   >
-                    <Edit3 size={16} />
+                    <Edit3 size={18} />
                   </button>
                   <button
                     onClick={() => onDeleteFlashcard(card.id)}
-                    className="text-red-500 hover:text-red-700"
+                    className="p-2 bg-red-500/20 backdrop-blur-sm rounded-xl text-red-300 hover:text-red-100 hover:bg-red-500/30 transition-all duration-200 transform hover:scale-110"
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={18} />
                   </button>
                 </div>
               </div>
-              <div className="mb-2">
-                <p className="font-semibold text-sm mb-1">Q:</p>
-                <p className="text-sm text-gray-700">{card.front}</p>
+              <div className="mb-4 relative z-10">
+                <p className="font-bold text-white mb-2 text-lg">❓ Question:</p>
+                <p className="text-white/90 font-medium leading-relaxed">{card.front}</p>
               </div>
-              <div className="mb-2">
-                <p className="font-semibold text-sm mb-1">A:</p>
-                <p className="text-sm text-gray-700">{card.back}</p>
+              <div className="mb-4 relative z-10">
+                <p className="font-bold text-white mb-2 text-lg">💡 Answer:</p>
+                <p className="text-white/90 font-medium leading-relaxed">{card.back}</p>
               </div>
-              <div className="flex justify-between items-center text-xs text-gray-500">
-                <span>Created: {card.displayDate}</span>
+              <div className="flex justify-between items-center text-sm text-white/60 border-t border-white/10 pt-4 relative z-10">
+                <span>📅 Created: {card.displayDate}</span>
                 {card.nextReviewDate && (
                   <span>Next: {new Date(card.nextReviewDate).toLocaleDateString()}</span>
                 )}
@@ -725,9 +1024,9 @@ const FlashcardsTab = ({ flashcards, dueCards, onAddFlashcard, onUpdateFlashcard
       </div>
 
       {filteredCards.length === 0 && !showForm && (
-        <div className="text-center py-12">
-          <Brain className="mx-auto mb-4 text-gray-400" size={48} />
-          <p className="text-gray-500 mb-4">
+        <div className="bg-gradient-to-br from-gray-500/20 to-gray-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-12 shadow-2xl text-center animate-bounce-in">
+          <div className="text-6xl mb-6">🧠</div>
+          <p className="text-white/80 mb-6 text-xl font-medium">
             {flashcards.length === 0 
               ? "No flashcards yet. Create your first card to get started!" 
               : "No cards match your search criteria."}
@@ -735,9 +1034,9 @@ const FlashcardsTab = ({ flashcards, dueCards, onAddFlashcard, onUpdateFlashcard
           {flashcards.length === 0 && (
             <button
               onClick={() => setShowForm(true)}
-              className="bg-blue-500 text-white px-6 py-3 rounded-md hover:bg-blue-600"
+              className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-8 py-4 rounded-2xl hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 font-bold shadow-lg hover:shadow-blue-500/50 transform hover:scale-105"
             >
-              Create First Card
+              ✨ Create First Card
             </button>
           )}
         </div>
@@ -766,112 +1065,143 @@ const PomodoroTab = ({ time, isActive, onToggle, onReset, formatTime, onAddStudy
   };
 
   return (
-    <div className="max-w-2xl mx-auto text-center">
-      <h2 className="text-2xl font-bold mb-8">Pomodoro Timer</h2>
+    <div className="max-w-6xl mx-auto space-y-8">
+      {/* Header Section */}
+      <div className="bg-gradient-to-br from-green-500/20 to-teal-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-8 shadow-2xl animate-slide-up text-center">
+        <h2 className="text-4xl font-black text-white mb-4 flex items-center justify-center">
+          ⏰ Pomodoro Focus Timer
+        </h2>
+        <p className="text-white/80 text-xl font-medium max-w-2xl mx-auto">
+          🎯 Boost your productivity with focused study sessions and break intervals ⚡
+        </p>
+      </div>
       
-      {/* Custom Interval Selection */}
-      <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-        <h3 className="text-lg font-semibold mb-4">Session Length</h3>
-        <div className="flex justify-center space-x-2 mb-4">
+      {/* Session Length Selection */}
+      <div className="bg-gradient-to-br from-blue-500/20 to-cyan-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-8 shadow-2xl animate-slide-up" style={{animationDelay: '0.1s'}}>
+        <h3 className="text-3xl font-bold text-white mb-6 text-center">⚙️ Session Length</h3>
+        <div className="flex flex-wrap justify-center gap-4">
           {[15, 25, 45, 60].map(minutes => (
             <button
               key={minutes}
               onClick={() => onSetCustomTimer(minutes)}
-              className={`px-4 py-2 rounded-md ${
+              className={`px-8 py-4 rounded-2xl font-bold text-lg transition-all duration-300 transform hover:scale-105 ${
                 customInterval === minutes
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/50'
+                  : 'bg-white/10 backdrop-blur-sm text-white/80 hover:bg-white/20 border border-white/20'
               }`}
             >
-              {minutes}m
+              {minutes} min
             </button>
           ))}
         </div>
       </div>
       
-      <div className="bg-white rounded-lg shadow-lg p-8 mb-6">
-        <div className="text-6xl font-bold text-blue-600 mb-6">
-          {formatTime(time)}
+      {/* Main Timer */}
+      <div className="bg-gradient-to-br from-purple-500/20 to-pink-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-12 shadow-2xl animate-slide-up text-center" style={{animationDelay: '0.2s'}}>
+        <div className="relative inline-block mb-8">
+          <div className="text-8xl md:text-9xl font-black text-white mb-6 animate-pulse">
+            {formatTime(time)}
+          </div>
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-400/20 via-pink-400/20 to-purple-400/20 blur-3xl animate-pulse"></div>
         </div>
         
-        <div className="flex justify-center space-x-4 mb-6">
+        <div className="flex flex-col sm:flex-row justify-center gap-6 mb-8">
           <button
             onClick={onToggle}
-            className={`flex items-center px-6 py-3 rounded-md text-white font-semibold ${
-              isActive ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'
+            className={`flex items-center justify-center px-10 py-5 rounded-2xl text-white font-bold text-xl transition-all duration-300 shadow-2xl transform hover:scale-105 ${
+              isActive 
+                ? 'bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 hover:shadow-red-500/50' 
+                : 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 hover:shadow-green-500/50'
             }`}
           >
-            {isActive ? <Pause className="mr-2" size={20} /> : <Play className="mr-2" size={20} />}
-            {isActive ? 'Pause' : 'Start'}
+            {isActive ? <Pause className="mr-3" size={24} /> : <Play className="mr-3" size={24} />}
+            {isActive ? '⏸️ Pause' : '▶️ Start Focus'}
           </button>
           
           <button
             onClick={onReset}
-            className="flex items-center px-6 py-3 rounded-md bg-gray-500 text-white font-semibold hover:bg-gray-600"
+            className="flex items-center justify-center px-10 py-5 rounded-2xl bg-gradient-to-r from-gray-500 to-gray-600 text-white font-bold text-xl hover:from-gray-600 hover:to-gray-700 transition-all duration-300 shadow-2xl hover:shadow-gray-500/50 transform hover:scale-105"
           >
-            <RotateCcw className="mr-2" size={20} />
-            Reset
+            <RotateCcw className="mr-3" size={24} />
+            🔄 Reset
           </button>
         </div>
 
         <button
           onClick={() => setShowLogForm(true)}
-          className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+          className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-8 py-4 rounded-2xl hover:from-indigo-600 hover:to-purple-700 transition-all duration-300 font-bold shadow-lg hover:shadow-indigo-500/50 transform hover:scale-105"
         >
-          Log Study Session
+          📝 Log Study Session
         </button>
       </div>
 
       {showLogForm && (
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h3 className="text-lg font-semibold mb-4">Log Study Session</h3>
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">Subject</label>
-            <input
-              type="text"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              className="w-full p-3 border rounded-md"
-              placeholder="What did you study?"
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">Notes (optional)</label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="w-full p-3 border rounded-md resize-none"
-              rows="3"
-              placeholder="Any additional notes..."
-            />
-          </div>
-          <div className="flex space-x-4">
-            <button
-              onClick={handleLogSession}
-              disabled={saving}
-              className="bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600 disabled:opacity-50"
-            >
-              {saving ? 'Saving...' : 'Log Session'}
-            </button>
-            <button
-              onClick={() => setShowLogForm(false)}
-              className="bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600"
-            >
-              Cancel
-            </button>
+        <div className="bg-gradient-to-br from-orange-500/20 to-red-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-8 shadow-2xl animate-bounce-in">
+          <h3 className="text-3xl font-bold text-white mb-6 flex items-center">
+            📝 Log Your Study Session
+          </h3>
+          <div className="space-y-6">
+            <div>
+              <label className="block text-white font-bold mb-3 text-lg">📚 What did you study?</label>
+              <input
+                type="text"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                className="w-full p-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent font-medium"
+                placeholder="Math, History, Programming..."
+              />
+            </div>
+            <div>
+              <label className="block text-white font-bold mb-3 text-lg">💭 Notes (optional)</label>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="w-full p-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl resize-none text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent font-medium"
+                rows="4"
+                placeholder="How did the session go? Any insights or challenges?"
+              />
+            </div>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <button
+                onClick={handleLogSession}
+                disabled={saving}
+                className="bg-gradient-to-r from-orange-500 to-red-600 text-white px-8 py-4 rounded-2xl hover:from-orange-600 hover:to-red-700 transition-all duration-300 font-bold shadow-lg hover:shadow-orange-500/50 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              >
+                {saving ? '⏳ Saving...' : '✅ Log Session'}
+              </button>
+              <button
+                onClick={() => setShowLogForm(false)}
+                className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-8 py-4 rounded-2xl hover:from-gray-600 hover:to-gray-700 transition-all duration-300 font-bold shadow-lg hover:shadow-gray-500/50 transform hover:scale-105 flex items-center justify-center"
+              >
+                ❌ Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      <div className="text-left bg-gray-50 rounded-lg p-4">
-        <h3 className="font-semibold mb-2">How Pomodoro Works:</h3>
-        <ul className="text-sm text-gray-600 space-y-1">
-          <li>• Choose your focus time (15-60 minutes)</li>
-          <li>• Study with full concentration</li>
-          <li>• Take a 5-minute break when timer ends</li>
-          <li>• After 4 sessions, take a longer 15-30 minute break</li>
-          <li>• Log your sessions to track progress</li>
-        </ul>
+      {/* How It Works */}
+      <div className="bg-gradient-to-br from-teal-500/20 to-green-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-8 shadow-2xl animate-slide-up" style={{animationDelay: '0.3s'}}>
+        <h3 className="text-3xl font-bold text-white mb-6 flex items-center">
+          🎯 How Pomodoro Works
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+            <div className="text-4xl mb-4">⏱️</div>
+            <h4 className="text-white font-bold text-lg mb-2">1. Choose Focus Time</h4>
+            <p className="text-white/80">Select 15-60 minutes for deep concentration</p>
+          </div>
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+            <div className="text-4xl mb-4">🎯</div>
+            <h4 className="text-white font-bold text-lg mb-2">2. Study Intensely</h4>
+            <p className="text-white/80">Focus completely on your subject</p>
+          </div>
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+            <div className="text-4xl mb-4">☕</div>
+            <h4 className="text-white font-bold text-lg mb-2">3. Take Breaks</h4>
+            <p className="text-white/80">5-minute breaks, longer after 4 sessions</p>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -1134,67 +1464,84 @@ const BlurtsTab = ({ blurts, onAddBlurt, onDeleteBlurt }) => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <h2 className="text-2xl font-bold mb-6">Brain Blurts</h2>
-      <p className="text-gray-600 mb-6">Quickly jot down thoughts, insights, or key concepts while studying.</p>
-
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-2">Quick Note</label>
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            className="w-full p-3 border rounded-md resize-none"
-            rows="4"
-            placeholder="What's on your mind? Write down any concept, insight, or question..."
-          />
+    <div className="max-w-7xl mx-auto space-y-8">
+      {/* Header Section */}
+      <div className="bg-gradient-to-br from-yellow-500/20 to-orange-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-8 shadow-2xl animate-slide-up">
+        <div className="text-center">
+          <h2 className="text-4xl font-black text-white mb-4 flex items-center justify-center">
+            🧠 Brain Blurts
+          </h2>
+          <p className="text-white/80 text-xl font-medium max-w-2xl mx-auto">
+            💡 Capture brilliant thoughts, insights, and key concepts instantly while studying ✨
+          </p>
         </div>
-        <div className="flex space-x-4 items-end">
-          <div className="flex-1">
-            <label className="block text-sm font-medium mb-2">Subject (optional)</label>
-            <input
-              type="text"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              className="w-full p-3 border rounded-md"
-              placeholder="Math, History, etc..."
+      </div>
+
+      {/* Add New Blurt Form */}
+      <div className="bg-gradient-to-br from-purple-500/20 to-pink-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-8 shadow-2xl animate-slide-up" style={{animationDelay: '0.1s'}}>
+        <h3 className="text-3xl font-bold text-white mb-6 flex items-center">
+          ✨ Capture Your Thoughts
+        </h3>
+        <div className="space-y-6">
+          <div>
+            <label className="block text-white font-bold mb-3 text-lg">💭 What's on your mind?</label>
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              className="w-full p-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl resize-none text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent font-medium"
+              rows="5"
+              placeholder="Write down any concept, insight, question, or brilliant idea..."
             />
           </div>
-          <button
-            onClick={handleSubmit}
-            disabled={saving}
-            className="bg-purple-500 text-white px-6 py-3 rounded-md hover:bg-purple-600 flex items-center disabled:opacity-50"
-          >
-            <Save className="mr-2" size={16} />
-            {saving ? 'Saving...' : 'Save Blurt'}
-          </button>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1">
+              <label className="block text-white font-bold mb-3 text-lg">📚 Subject (optional)</label>
+              <input
+                type="text"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                className="w-full p-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent font-medium"
+                placeholder="Math, History, Science..."
+              />
+            </div>
+            <div className="flex items-end">
+              <button
+                onClick={handleSubmit}
+                disabled={saving}
+                className="bg-gradient-to-r from-purple-500 to-pink-600 text-white px-8 py-4 rounded-2xl hover:from-purple-600 hover:to-pink-700 transition-all duration-300 font-bold shadow-lg hover:shadow-purple-500/50 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              >
+                <Save className="mr-2" size={20} />
+                {saving ? '⏳ Saving...' : '🚀 Save Blurt'}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Search and Filter */}
       {blurts.length > 0 && (
-        <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-          <div className="flex space-x-4">
+        <div className="bg-gradient-to-br from-cyan-500/20 to-blue-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-6 shadow-2xl animate-slide-up" style={{animationDelay: '0.2s'}}>
+          <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-3 text-gray-400" size={16} />
+                <Search className="absolute left-4 top-4 text-white/60" size={20} />
                 <input
                   type="text"
-                  placeholder="Search notes..."
+                  placeholder="🔍 Search your brilliant thoughts..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border rounded-md"
+                  className="w-full pl-12 pr-4 py-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent font-medium"
                 />
               </div>
             </div>
             <select
               value={selectedSubject}
               onChange={(e) => setSelectedSubject(e.target.value)}
-              className="px-4 py-2 border rounded-md"
+              className="px-6 py-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl text-white font-medium focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
             >
               {subjects.map(subject => (
-                <option key={subject} value={subject}>
-                  {subject === 'all' ? 'All Subjects' : subject}
+                <option key={subject} value={subject} className="bg-gray-800 text-white">
+                  {subject === 'all' ? '📚 All Subjects' : `📖 ${subject}`}
                 </option>
               ))}
             </select>
@@ -1202,34 +1549,38 @@ const BlurtsTab = ({ blurts, onAddBlurt, onDeleteBlurt }) => {
         </div>
       )}
 
-      <div className="space-y-4">
+      {/* Blurts Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredBlurts.length === 0 ? (
-          <div className="text-center py-12">
-            <Edit3 className="mx-auto mb-4 text-gray-400" size={48} />
-            <p className="text-gray-500">
+          <div className="col-span-full bg-gradient-to-br from-gray-500/20 to-gray-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-12 shadow-2xl text-center animate-bounce-in">
+            <div className="text-6xl mb-6">💭</div>
+            <p className="text-white/80 mb-6 text-xl font-medium">
               {blurts.length === 0 
-                ? "No brain blurts yet. Start capturing your thoughts!" 
+                ? "No brain blurts yet. Start capturing your brilliant thoughts!" 
                 : "No notes match your search criteria."}
             </p>
           </div>
         ) : (
-          filteredBlurts.map(blurt => (
-            <div key={blurt.id} className="bg-white rounded-lg shadow-md p-4">
-              <div className="flex justify-between items-start mb-2">
-                <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs">
-                  {blurt.subject}
+          filteredBlurts.map((blurt, index) => (
+            <div key={blurt.id} className="bg-gradient-to-br from-indigo-500/20 to-purple-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-6 shadow-2xl hover:shadow-indigo-500/25 transition-all duration-300 transform hover:-translate-y-1 hover:scale-105 group animate-bounce-in relative overflow-hidden" style={{animationDelay: `${index * 0.1}s`}}>
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+              <div className="flex justify-between items-start mb-4 relative z-10">
+                <span className="bg-gradient-to-r from-purple-500 to-pink-600 text-white px-3 py-1 rounded-full text-sm font-bold">
+                  📚 {blurt.subject}
                 </span>
-                <div className="flex items-center space-x-2">
-                  <span className="text-xs text-gray-500">{blurt.timestamp}</span>
+                <div className="flex items-center space-x-3">
+                  <span className="text-white/60 text-sm font-medium">📅 {blurt.timestamp}</span>
                   <button
                     onClick={() => onDeleteBlurt(blurt.id)}
-                    className="text-red-500 hover:text-red-700"
+                    className="p-2 bg-red-500/20 backdrop-blur-sm rounded-xl text-red-300 hover:text-red-100 hover:bg-red-500/30 transition-all duration-200 transform hover:scale-110"
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={18} />
                   </button>
                 </div>
               </div>
-              <p className="text-gray-800 whitespace-pre-wrap">{blurt.content}</p>
+              <div className="relative z-10">
+                <p className="text-white/90 font-medium leading-relaxed whitespace-pre-wrap">{blurt.content}</p>
+              </div>
             </div>
           ))
         )}

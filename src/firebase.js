@@ -2,6 +2,7 @@
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getFirestore } from "firebase/firestore";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDLSITAlFNU7CBSsQZye96jJVwDSKQbsCc",
@@ -15,11 +16,16 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+// const analytics = getAnalytics(app); // Commented out to avoid unused variable warning
 const db = getFirestore(app);
+const auth = getAuth(app);
 
-// 🔥 CHANGE THIS LINE:
-// From: export default db;
-// To: export { db };
-
-export { db };
+// Export Firebase services
+export { 
+  db, 
+  auth, 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  signOut, 
+  onAuthStateChanged 
+};

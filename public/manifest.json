@@ -1,6 +1,7 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "StudyMaster Pro",
+  "name": "StudyMaster Pro - Smart Study Companion",
+  "description": "Advanced study app with spaced repetition, voice commands, and intelligent analytics",
   "icons": [
     {
       "src": "favicon.ico",
@@ -10,16 +11,46 @@
     {
       "src": "logo192.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any maskable"
     },
     {
       "src": "logo512.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "orientation": "portrait-primary",
+  "theme_color": "#6366f1",
+  "background_color": "#f8fafc",
+  "categories": ["education", "productivity", "utilities"],
+  "lang": "en-US",
+  "scope": "/",
+  "prefer_related_applications": false,
+  "shortcuts": [
+    {
+      "name": "Study Flashcards",
+      "short_name": "Study",
+      "description": "Start studying with flashcards",
+      "url": "/?tab=flashcards",
+      "icons": [{ "src": "logo192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Pomodoro Timer",
+      "short_name": "Timer",
+      "description": "Start a focused study session",
+      "url": "/?tab=pomodoro",
+      "icons": [{ "src": "logo192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Analytics",
+      "short_name": "Stats",
+      "description": "View your study progress and analytics",
+      "url": "/?tab=analytics",
+      "icons": [{ "src": "logo192.png", "sizes": "192x192" }]
+    }
+  ]
 }
