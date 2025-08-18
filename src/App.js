@@ -1,11 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Clock, BookOpen, Brain, Plus, Play, Pause, RotateCcw, Save, Edit3, Trash2, Search, BarChart3, Star, Calendar, Trophy, Award, Flame, Cloud, HardDrive } from 'lucide-react';
+import { Brain, Plus, Play, Pause, RotateCcw, Save, Edit3, Trash2, Search, Star, Calendar, Trophy, Award, Flame } from 'lucide-react';
 import { auth, onAuthStateChanged } from './firebase';
 import AuthModal from './components/Auth/AuthModal';
-import UserProfile from './components/Auth/UserProfile';
 
-import AdvancedAnalytics from './components/AdvancedAnalytics';
+import SmartAnalytics from './components/Analytics/SmartAnalytics';
+import AdvancedStudyModes from './components/Study/AdvancedStudyModes';
+import StudyModeSelector from './components/Study/StudyModeSelector';
+import CustomizationTab from './components/Customization/CustomizationTab';
+import DevTestPanel from './components/DevTools/DevTestPanel';
+import Header from './components/Common/Header';
+import Navigation from './components/Common/Navigation';
+import DashboardTab from './components/Dashboard/DashboardTab';
 import * as storageService from './services/storageService';
+import { getBackgroundClasses } from './services/customizationService';
 import './animations.css';
 
 const StudyApp = () => {
@@ -26,6 +33,27 @@ const StudyApp = () => {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [storageMode, setStorageModeState] = useState(storageService.STORAGE_MODES.LOCAL);
+  
+  // 🚀 NEW: Advanced Study Modes state
+  const [studySession, setStudySession] = useState(null);
+  const [studyMode, setStudyMode] = useState('active-recall');
+  
+  // Customization state
+  const [selectedCustomizations, setSelectedCustomizations] = useState({
+          avatars: 'default',
+      backgrounds: 'default'
+  });
+
+  // Dev testing state (for quick testing)
+  const [devLevel, setDevLevel] = useState(1);
+  const [devAchievements, setDevAchievements] = useState([]);
+  const [devStats, setDevStats] = useState({
+    totalStudyTime: 0,
+    totalCardsCreated: 0,
+    totalCardsReviewed: 0,
+    currentStreak: 0,
+    longestStreak: 0
+  });
 
   // Initialize storage mode and auth state
   useEffect(() => {
@@ -47,6 +75,17 @@ const StudyApp = () => {
     
     initApp();
   }, []);
+
+  // Handle logout
+  const handleLogout = async () => {
+    try {
+      await auth.signOut();
+      setUser(null);
+      setStorageModeState(storageService.getStorageMode());
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  };
 
   // 🔥 NEW: Calculate study streak with milestone detection
   const calculateStreak = useCallback((logs) => {
@@ -282,15 +321,15 @@ const StudyApp = () => {
       
       if (streakData.milestone) {
         const messages = {
-          3: "🔥 3-DAY STREAK! You're on fire! The momentum is building!",
-          7: "⚡ WEEK WARRIOR! 7 days straight - you're unstoppable!",
-          14: "💪 TWO WEEK TITAN! Your dedication is absolutely incredible!",
-          30: "👑 MONTH MASTER! 30 days of pure commitment - you're a legend!",
-          50: "🚀 FIFTY DAY PHENOMENON! Your consistency is mind-blowing!",
-          100: "🏆 CENTURY CHAMPION! 100 days of excellence - you're LEGENDARY!"
+          3: '🔥 3-day streak! You\'re building momentum!',
+          7: '🚀 7-day streak! You\'re on fire!',
+          14: '💪 14-day streak! Unstoppable!',
+          30: '🏆 30-day streak! LEGEND STATUS!',
+          50: '👑 50-day streak! ROYALTY!',
+          100: '🌟 100-day streak! IMMORTAL!'
         };
         
-        triggerCelebration('streak', {
+        triggerCelebration('streak_milestone', {
           message: messages[streakData.milestone],
           streak: streakData.milestone
         });
@@ -299,6 +338,35 @@ const StudyApp = () => {
       console.error('Error adding study log:', error);
       alert('Error saving study log. Please try again.');
     }
+  };
+
+  // 🚀 NEW: Advanced Study Session Functions
+  const startStudySession = (mode, type) => {
+    setStudyMode(mode);
+    setStudySession({
+      id: Date.now().toString(),
+      mode,
+      type,
+      startTime: new Date().toISOString(),
+      cards: []
+    });
+  };
+
+  const handleStudySessionComplete = (sessionData) => {
+    setStudySession(null);
+    // Add study log for the session
+    addStudyLog(
+      `Study Session - ${sessionData.mode}`,
+      Math.round(sessionData.duration / 60),
+      `Completed ${sessionData.total} cards with ${sessionData.correct} correct answers`
+    );
+  };
+
+  const handleCustomizationChange = (type, customizationId) => {
+    setSelectedCustomizations(prev => ({
+      ...prev,
+      [type]: customizationId
+    }));
   };
 
   const setCustomTimer = (minutes) => {
@@ -391,7 +459,7 @@ const StudyApp = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 relative overflow-hidden">
+    <div className={`min-h-screen bg-gradient-to-br ${getBackgroundClasses(selectedCustomizations.backgrounds)} relative overflow-hidden`}>
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-pink-400 to-purple-600 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
@@ -416,211 +484,44 @@ const StudyApp = () => {
       />
       
       <div className="container mx-auto px-6 py-8 relative z-10">
-        {/* Header with Auth */}
-        <div className="bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 p-8 mb-8 shadow-2xl">
-          <div className="flex justify-between items-center">
-            <div className="text-left">
-              <div className="relative inline-block">
-                <h1 className="text-6xl md:text-7xl font-black bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-3 animate-gradient-x relative z-10">
-                  StudyMaster Pro
-                </h1>
-                <div className="absolute inset-0 bg-gradient-to-r from-cyan-400/20 via-purple-400/20 to-pink-400/20 blur-3xl animate-pulse"></div>
-              </div>
-              <p className="text-white/90 text-xl font-medium">🚀 Smart study companion with spaced repetition and analytics ✨</p>
-              <div className="flex items-center mt-4">
-                <div className={`flex items-center px-4 py-2 rounded-full text-sm font-bold backdrop-blur-sm border-2 ${
-                  storageMode === storageService.STORAGE_MODES.CLOUD 
-                    ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400/50' 
-                    : 'bg-emerald-500/20 text-emerald-300 border-emerald-400/50'
-                }`}>
-                  {storageMode === storageService.STORAGE_MODES.CLOUD 
-                    ? <><Cloud size={16} className="mr-2" /> ☁️ Cloud Synced</> 
-                    : <><HardDrive size={16} className="mr-2" /> 💾 Local Storage</>
-                  }
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              {!user && (
-                <button
-                  onClick={() => setAuthModalOpen(true)}
-                  className="bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-white px-8 py-4 rounded-2xl hover:from-pink-600 hover:via-purple-600 hover:to-indigo-600 transition-all duration-300 font-bold shadow-2xl hover:shadow-pink-500/25 transform hover:-translate-y-1 hover:scale-105"
-                >
-                  ✨ Sign In
-                </button>
-              )}
-              <UserProfile 
+        {/* Header */}
+        <Header 
                 user={user} 
-                onLogout={() => {
-                  setStorageModeState(storageService.getStorageMode());
-                }} 
-              />
-            </div>
-          </div>
-        </div>
+          onAuthModalOpen={() => setAuthModalOpen(true)}
+          onLogout={handleLogout}
+          storageMode={storageMode}
+          onStorageModeChange={(mode) => setStorageModeState(mode)}
+          streakData={{ current: devStats.currentStreak, longest: devStats.longestStreak }}
+          studyLogs={studyLogs}
+          flashcards={flashcards}
+          blurts={blurts}
+          selectedCustomizations={selectedCustomizations}
+          devLevel={devLevel}
+        />
 
 
 
         {/* Navigation */}
-        <nav className="flex justify-center mb-8">
-          <div className="bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 p-4 flex space-x-2 shadow-2xl">
-            {[
-              { id: 'dashboard', label: 'Dashboard', icon: BookOpen, color: 'from-orange-400 to-pink-500', emoji: '🏠' },
-              { id: 'flashcards', label: 'Flashcards', icon: Brain, color: 'from-purple-400 to-indigo-500', emoji: '🧠' },
-              { id: 'pomodoro', label: 'Pomodoro', icon: Clock, color: 'from-green-400 to-teal-500', emoji: '⏰' },
-              { id: 'analytics', label: 'Analytics', icon: BarChart3, color: 'from-blue-400 to-cyan-500', emoji: '📊' },
-              { id: 'blurts', label: 'Brain Blurts', icon: Edit3, color: 'from-yellow-400 to-orange-500', emoji: '💡' }
-            ].map(({ id, label, icon: Icon, color, emoji }) => (
-              <button
-                key={id}
-                onClick={() => setActiveTab(id)}
-                className={`flex items-center space-x-3 px-6 py-4 rounded-2xl transition-all duration-300 font-bold relative overflow-hidden group ${
-                  activeTab === id 
-                    ? `bg-gradient-to-r ${color} text-white shadow-2xl transform scale-110 shadow-${color.split('-')[1]}-500/50` 
-                    : 'text-white/80 hover:text-white hover:bg-white/10 hover:scale-105'
-                }`}
-              >
-                <div className="relative z-10 flex items-center space-x-3">
-                  <span className="text-xl">{emoji}</span>
-                  <Icon size={22} />
-                  <span className="hidden md:block">{label}</span>
-                </div>
-                {activeTab === id && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent animate-pulse"></div>
-                )}
-              </button>
-            ))}
-          </div>
-        </nav>
+        <Navigation 
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
 
         {/* Dashboard */}
         {activeTab === 'dashboard' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-gradient-to-br from-purple-500/20 to-indigo-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-6 hover:shadow-2xl hover:shadow-purple-500/25 transition-all duration-300 transform hover:-translate-y-2 hover:scale-105 group animate-slide-up relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-4 bg-gradient-to-br from-purple-400 to-indigo-500 rounded-2xl shadow-lg group-hover:animate-bounce">
-                  <Brain className="text-white" size={28} />
-                </div>
-                <div className="text-right">
-                  <p className="text-3xl font-black text-white">{flashcards.length}</p>
-                  <p className="text-sm text-purple-200">🧠 Total Cards</p>
-                </div>
-              </div>
-              <h3 className="text-xl font-bold text-white mb-2">Flashcards</h3>
-              <p className="text-purple-200 mb-4">
-                {dueCards.length > 0 ? `🔥 ${dueCards.length} cards due for review` : '✨ All caught up!'}
-              </p>
-              <button
-                onClick={() => setActiveTab('flashcards')}
-                className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 text-white py-3 rounded-2xl hover:from-purple-600 hover:to-indigo-700 transition-all duration-300 font-bold shadow-lg hover:shadow-purple-500/50 transform hover:scale-105"
-              >
-                🚀 Study Now
-              </button>
-            </div>
-
-            <div className="bg-gradient-to-br from-green-500/20 to-teal-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-6 hover:shadow-2xl hover:shadow-green-500/25 transition-all duration-300 transform hover:-translate-y-2 hover:scale-105 group animate-slide-up relative overflow-hidden" style={{animationDelay: '0.1s'}}>
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-4 bg-gradient-to-br from-green-400 to-teal-500 rounded-2xl shadow-lg group-hover:animate-spin">
-                  <Clock className="text-white" size={28} />
-                </div>
-                <div className="text-right">
-                  <p className="text-3xl font-black text-white">{studyLogs.length}</p>
-                  <p className="text-sm text-green-200">⏰ Sessions</p>
-                </div>
-              </div>
-              <h3 className="text-xl font-bold text-white mb-2">Study Sessions</h3>
-              <p className="text-green-200 mb-4">
-                {studyLogs.length > 0 ? '🔥 Keep up the momentum!' : '🌟 Start your first session'}
-              </p>
-              <button
-                onClick={() => setActiveTab('pomodoro')}
-                className="w-full bg-gradient-to-r from-green-500 to-teal-600 text-white py-3 rounded-2xl hover:from-green-600 hover:to-teal-700 transition-all duration-300 font-bold shadow-lg hover:shadow-green-500/50 transform hover:scale-105"
-              >
-                ⚡ Start Timer
-              </button>
-            </div>
-
-            <div className="bg-gradient-to-br from-blue-500/20 to-cyan-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-6 hover:shadow-2xl hover:shadow-blue-500/25 transition-all duration-300 transform hover:-translate-y-2 hover:scale-105 group animate-slide-up relative overflow-hidden" style={{animationDelay: '0.2s'}}>
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-4 bg-gradient-to-br from-blue-400 to-cyan-500 rounded-2xl shadow-lg group-hover:animate-pulse">
-                  <BarChart3 className="text-white" size={28} />
-                </div>
-                <div className="text-right">
-                  <p className="text-3xl font-black text-white">{studyLogs.reduce((sum, log) => sum + log.duration, 0)}</p>
-                  <p className="text-sm text-blue-200">📊 Minutes</p>
-                </div>
-              </div>
-              <h3 className="text-xl font-bold text-white mb-2">Analytics</h3>
-              <p className="text-blue-200 mb-4">
-                {studyLogs.length > 0 ? '📈 Track your progress' : '📊 No data yet'}
-              </p>
-              <button
-                onClick={() => setActiveTab('analytics')}
-                className="w-full bg-gradient-to-r from-blue-500 to-cyan-600 text-white py-3 rounded-2xl hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 font-bold shadow-lg hover:shadow-blue-500/50 transform hover:scale-105"
-              >
-                📊 View Stats
-              </button>
-            </div>
-
-            <div className="bg-gradient-to-br from-yellow-500/20 to-orange-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-6 hover:shadow-2xl hover:shadow-yellow-500/25 transition-all duration-300 transform hover:-translate-y-2 hover:scale-105 group animate-slide-up relative overflow-hidden" style={{animationDelay: '0.3s'}}>
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-4 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl shadow-lg group-hover:animate-bounce">
-                  <Edit3 className="text-white" size={28} />
-                </div>
-                <div className="text-right">
-                  <p className="text-3xl font-black text-white">{blurts.length}</p>
-                  <p className="text-sm text-yellow-200">💡 Notes</p>
-                </div>
-              </div>
-              <h3 className="text-xl font-bold text-white mb-2">Brain Blurts</h3>
-              <p className="text-yellow-200 mb-4">
-                {blurts.length > 0 ? '💭 Capture your thoughts' : '✨ Start taking notes'}
-              </p>
-              <button
-                onClick={() => setActiveTab('blurts')}
-                className="w-full bg-gradient-to-r from-yellow-500 to-orange-600 text-white py-3 rounded-2xl hover:from-yellow-600 hover:to-orange-700 transition-all duration-300 font-bold shadow-lg hover:shadow-yellow-500/50 transform hover:scale-105"
-              >
-                💡 Quick Note
-              </button>
-            </div>
-
-            {/* Recent Study Logs */}
-            <div className="md:col-span-2 lg:col-span-4 bg-gradient-to-br from-indigo-500/20 to-purple-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-8 shadow-2xl animate-slide-up relative overflow-hidden" style={{animationDelay: '0.4s'}}>
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12 -translate-x-full hover:translate-x-full transition-transform duration-1000"></div>
-              <h3 className="text-2xl font-bold text-white mb-6 flex items-center">
-                📚 Recent Study Sessions
-              </h3>
-              {studyLogs.length === 0 ? (
-                <div className="text-center py-8">
-                  <div className="text-6xl mb-4">📖</div>
-                  <p className="text-white/80 text-lg">No study sessions logged yet. Start studying to track your progress!</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {studyLogs.slice(0, 5).map(log => (
-                    <div key={log.id} className="bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 p-4 hover:bg-white/15 transition-all duration-200">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="font-bold text-white text-lg mb-1">📖 {log.subject}</h4>
-                          <p className="text-white/80 font-medium">⏰ {log.duration} minutes - {log.date} at {log.time}</p>
-                          {log.notes && <p className="text-white/70 mt-2 italic">💭 {log.notes}</p>}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+          <DashboardTab 
+            flashcards={flashcards}
+            studyLogs={studyLogs}
+            dueCards={dueCards}
+            streakData={{ current: devStats.currentStreak, longest: devStats.longestStreak }}
+            onTabChange={setActiveTab}
+            blurts={blurts}
+          />
         )}
 
         {/* Flashcards Tab */}
-        {activeTab === 'flashcards' && (
-          <FlashcardsTab 
+                {activeTab === 'flashcards' && (
+          <FlashcardsTab
             flashcards={flashcards}
             dueCards={dueCards}
             onAddFlashcard={addFlashcard}
@@ -644,11 +545,42 @@ const StudyApp = () => {
           />
         )}
 
-
+        {/* Study Tab */}
+        {activeTab === 'study' && (
+          <div className="space-y-6">
+            <StudyModeSelector 
+              onModeSelect={setStudyMode}
+              onStartSession={startStudySession}
+              flashcards={flashcards}
+            />
+            {studySession && (
+              <AdvancedStudyModes
+                flashcards={flashcards}
+                onReviewFlashcard={reviewFlashcard}
+                onCompleteSession={handleStudySessionComplete}
+                studyMode={studyMode}
+                user={user}
+              />
+            )}
+          </div>
+        )}
 
         {/* Analytics Tab */}
         {activeTab === 'analytics' && (
-          <AdvancedAnalytics studyLogs={studyLogs} flashcards={flashcards} />
+          <SmartAnalytics studyLogs={studyLogs} flashcards={flashcards} blurts={blurts} />
+        )}
+
+        {/* Customization Tab */}
+        {activeTab === 'customization' && (
+          <CustomizationTab
+            studyLogs={studyLogs}
+            flashcards={flashcards}
+            blurts={blurts}
+            streakData={{ current: devStats.currentStreak, longest: devStats.longestStreak }}
+            selectedCustomizations={selectedCustomizations}
+            onCustomizationChange={handleCustomizationChange}
+            devLevel={devLevel}
+          />
         )}
 
         {/* Brain Blurts Tab */}
@@ -659,6 +591,18 @@ const StudyApp = () => {
             onDeleteBlurt={deleteBlurt}
           />
         )}
+
+        {/* Developer Testing Panel */}
+        <DevTestPanel
+          onSetLevel={setDevLevel}
+          onSetCustomizations={setSelectedCustomizations}
+          onSetAchievements={setDevAchievements}
+          onSetStats={setDevStats}
+          currentLevel={devLevel}
+          selectedCustomizations={selectedCustomizations}
+          achievements={devAchievements}
+          stats={devStats}
+        />
       </div>
     </div>
   );
@@ -671,7 +615,6 @@ const FlashcardsTab = ({ flashcards, dueCards, onAddFlashcard, onUpdateFlashcard
   const [front, setFront] = useState('');
   const [back, setBack] = useState('');
   const [subject, setSubject] = useState('');
-  const [studyMode, setStudyMode] = useState(false);
   const [reviewMode, setReviewMode] = useState(false);
   const [currentCard, setCurrentCard] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
@@ -725,26 +668,22 @@ const FlashcardsTab = ({ flashcards, dueCards, onAddFlashcard, onUpdateFlashcard
 
   const nextCard = () => {
     setShowAnswer(false);
-    const cards = reviewMode ? dueCards : filteredCards;
-    setCurrentCard((prev) => (prev + 1) % cards.length);
+    setCurrentCard((prev) => (prev + 1) % dueCards.length);
   };
 
   const prevCard = () => {
     setShowAnswer(false);
-    const cards = reviewMode ? dueCards : filteredCards;
-    setCurrentCard((prev) => (prev - 1 + cards.length) % cards.length);
+    setCurrentCard((prev) => (prev - 1 + dueCards.length) % dueCards.length);
   };
 
   const handleReview = async (difficulty) => {
-    const cards = reviewMode ? dueCards : filteredCards;
-    const card = cards[currentCard];
+    const card = dueCards[currentCard];
     await onReviewFlashcard(card.id, difficulty);
     nextCard();
   };
 
-  if ((studyMode || reviewMode) && (filteredCards.length > 0 || dueCards.length > 0)) {
-    const cards = reviewMode ? dueCards : filteredCards;
-    const card = cards[currentCard];
+  if (reviewMode && dueCards.length > 0) {
+    const card = dueCards[currentCard];
     
     return (
       <div className="max-w-4xl mx-auto space-y-8">
@@ -752,7 +691,6 @@ const FlashcardsTab = ({ flashcards, dueCards, onAddFlashcard, onUpdateFlashcard
           <div className="flex justify-between items-center">
             <button
               onClick={() => {
-                setStudyMode(false);
                 setReviewMode(false);
                 setCurrentCard(0);
               }}
@@ -761,7 +699,7 @@ const FlashcardsTab = ({ flashcards, dueCards, onAddFlashcard, onUpdateFlashcard
               ← 🏠 Back to Cards
             </button>
             <span className="text-white font-bold text-lg">
-              📊 {currentCard + 1} of {cards.length} {reviewMode ? '🔥 (Due for Review)' : '⚡ (Study Mode)'}
+              📊 {currentCard + 1} of {dueCards.length} 🔥 (Due for Review)
             </span>
           </div>
         </div>
@@ -860,18 +798,7 @@ const FlashcardsTab = ({ flashcards, dueCards, onAddFlashcard, onUpdateFlashcard
                 🔥 Review Due ({dueCards.length})
               </button>
             )}
-            {filteredCards.length > 0 && (
-              <button
-                onClick={() => {
-                  setStudyMode(true);
-                  setCurrentCard(0);
-                }}
-                className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3 rounded-2xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 font-bold shadow-lg hover:shadow-green-500/50 transform hover:scale-105 flex items-center"
-              >
-                <Play className="mr-2" size={20} />
-                ⚡ Study Mode
-              </button>
-            )}
+
             <button
               onClick={() => setShowForm(true)}
               className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-6 py-3 rounded-2xl hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 font-bold shadow-lg hover:shadow-blue-500/50 transform hover:scale-105 flex items-center"
@@ -971,7 +898,7 @@ const FlashcardsTab = ({ flashcards, dueCards, onAddFlashcard, onUpdateFlashcard
         {filteredCards.map(card => {
           const isDue = card.nextReviewDate && card.nextReviewDate <= new Date().toISOString();
           return (
-            <div key={card.id} className={`bg-gradient-to-br ${isDue ? 'from-red-500/20 to-pink-600/20' : 'from-indigo-500/20 to-purple-600/20'} backdrop-blur-xl rounded-3xl border border-white/20 p-6 shadow-2xl hover:shadow-${isDue ? 'red' : 'indigo'}-500/25 transition-all duration-300 transform hover:-translate-y-1 hover:scale-105 group animate-bounce-in relative overflow-hidden`}>
+            <div key={card.id} className={`${isDue ? 'bg-gradient-to-br from-red-500/20 to-pink-600/20' : 'bg-gradient-to-br from-purple-500/20 to-indigo-600/20'} backdrop-blur-xl rounded-3xl border-purple-500/30 p-6 shadow-2xl hover:shadow-${isDue ? 'red' : 'indigo'}-500/25 transition-all duration-300 transform hover:-translate-y-1 hover:scale-105 group animate-bounce-in relative overflow-hidden`}>
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
               <div className="flex justify-between items-start mb-4 relative z-10">
                 <div className="flex flex-wrap gap-2">
@@ -1207,233 +1134,7 @@ const PomodoroTab = ({ time, isActive, onToggle, onReset, formatTime, onAddStudy
   );
 };
 
-// 🚀 NEW: Analytics Tab Component (Simple Charts)
-const AnalyticsTab = ({ studyLogs, flashcards }) => {
-  const getAnalyticsData = () => {
-    // Subject breakdown
-    const subjectData = studyLogs.reduce((acc, log) => {
-      acc[log.subject] = (acc[log.subject] || 0) + log.duration;
-      return acc;
-    }, {});
 
-    const chartData = Object.entries(subjectData).map(([subject, minutes]) => ({
-      subject,
-      minutes
-    }));
-
-    // Weekly progress
-    const weeklyData = studyLogs.reduce((acc, log) => {
-      const date = new Date(log.createdAt || Date.now()).toLocaleDateString();
-      acc[date] = (acc[date] || 0) + log.duration;
-      return acc;
-    }, {});
-
-    const weeklyChartData = Object.entries(weeklyData)
-      .slice(-7)
-      .map(([date, minutes]) => ({ date, minutes }));
-
-    // Study insights
-    const totalMinutes = studyLogs.reduce((sum, log) => sum + log.duration, 0);
-    const averageSession = studyLogs.length > 0 ? Math.round(totalMinutes / studyLogs.length) : 0;
-    const totalCards = flashcards.length;
-    const reviewedCards = flashcards.filter(card => card.reviewCount > 0).length;
-    const dueCards = flashcards.filter(card => 
-      card.nextReviewDate && card.nextReviewDate <= new Date().toISOString()
-    ).length;
-
-    // Study streak calculation
-    const sortedLogs = studyLogs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    let currentStreak = 0;
-    let lastDate = new Date().toDateString();
-    
-    for (const log of sortedLogs) {
-      const logDate = new Date(log.createdAt || Date.now()).toDateString();
-      if (logDate === lastDate) {
-        if (currentStreak === 0) currentStreak = 1;
-      } else {
-        const daysDiff = Math.floor((new Date(lastDate) - new Date(logDate)) / (1000 * 60 * 60 * 24));
-        if (daysDiff === 1) {
-          currentStreak++;
-          lastDate = logDate;
-        } else {
-          break;
-        }
-      }
-    }
-
-    return {
-      chartData,
-      weeklyChartData,
-      stats: {
-        totalMinutes,
-        totalHours: Math.round(totalMinutes / 60 * 10) / 10,
-        averageSession,
-        totalSessions: studyLogs.length,
-        currentStreak,
-        totalCards,
-        reviewedCards,
-        dueCards,
-        masteredCards: totalCards - dueCards
-      }
-    };
-  };
-
-  const { chartData, weeklyChartData, stats } = getAnalyticsData();
-
-  // Simple bar chart component
-  const SimpleBarChart = ({ data, title }) => {
-    const maxValue = Math.max(...data.map(item => item.minutes));
-    
-    return (
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h3 className="text-lg font-semibold mb-4">{title}</h3>
-        {data.length > 0 ? (
-          <div className="space-y-2">
-            {data.map(({ subject, minutes }) => (
-              <div key={subject} className="flex items-center">
-                <div className="w-20 text-sm text-gray-600 truncate">{subject}</div>
-                <div className="flex-1 mx-3 bg-gray-200 rounded-full h-4 relative">
-                  <div 
-                    className="bg-blue-500 h-4 rounded-full flex items-center justify-end pr-2"
-                    style={{ width: `${(minutes / maxValue) * 100}%` }}
-                  >
-                    <span className="text-xs text-white font-medium">{minutes}m</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="flex items-center justify-center h-32 text-gray-500">
-            <div className="text-center">
-              <BarChart3 size={32} className="mx-auto mb-2 opacity-50" />
-              <p>No study data yet</p>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // Simple line chart component
-  const SimpleLineChart = ({ data, title }) => {
-    const maxValue = Math.max(...data.map(item => item.minutes), 1);
-    
-    return (
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h3 className="text-lg font-semibold mb-4">{title}</h3>
-        {data.length > 0 ? (
-          <div className="h-32 flex items-end space-x-2">
-            {data.map(({ date, minutes }, index) => (
-              <div key={index} className="flex-1 flex flex-col items-center">
-                <div 
-                  className="bg-green-500 w-full rounded-t"
-                  style={{ height: `${(minutes / maxValue) * 100}%` }}
-                ></div>
-                <div className="text-xs text-gray-500 mt-1 truncate w-full text-center">
-                  {date.split('/').slice(0, 2).join('/')}
-                </div>
-                <div className="text-xs text-gray-400">{minutes}m</div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="flex items-center justify-center h-32 text-gray-500">
-            <div className="text-center">
-              <BarChart3 size={32} className="mx-auto mb-2 opacity-50" />
-              <p>No weekly data yet</p>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  return (
-    <div className="max-w-6xl mx-auto">
-      <h2 className="text-2xl font-bold mb-6">Study Analytics</h2>
-
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div className="bg-white rounded-lg shadow-md p-6 text-center">
-          <div className="text-3xl font-bold text-blue-600 mb-2">{stats.totalHours}h</div>
-          <div className="text-sm text-gray-600">Total Study Time</div>
-        </div>
-        
-        <div className="bg-white rounded-lg shadow-md p-6 text-center">
-          <div className="text-3xl font-bold text-green-600 mb-2">{stats.currentStreak}</div>
-          <div className="text-sm text-gray-600">Day Streak</div>
-        </div>
-        
-        <div className="bg-white rounded-lg shadow-md p-6 text-center">
-          <div className="text-3xl font-bold text-purple-600 mb-2">{stats.averageSession}m</div>
-          <div className="text-sm text-gray-600">Avg Session</div>
-        </div>
-        
-        <div className="bg-white rounded-lg shadow-md p-6 text-center">
-          <div className="text-3xl font-bold text-orange-600 mb-2">{stats.masteredCards}</div>
-          <div className="text-sm text-gray-600">Cards Mastered</div>
-        </div>
-      </div>
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <SimpleBarChart data={chartData} title="Study Time by Subject" />
-        <SimpleLineChart data={weeklyChartData} title="Weekly Progress" />
-      </div>
-
-      {/* Flashcard Analytics */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h3 className="text-lg font-semibold mb-4">Flashcard Progress</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="text-center p-4 bg-blue-50 rounded-lg">
-            <div className="text-2xl font-bold text-blue-600">{stats.totalCards}</div>
-            <div className="text-sm text-gray-600">Total Cards</div>
-          </div>
-          <div className="text-center p-4 bg-yellow-50 rounded-lg">
-            <div className="text-2xl font-bold text-yellow-600">{stats.dueCards}</div>
-            <div className="text-sm text-gray-600">Due for Review</div>
-          </div>
-          <div className="text-center p-4 bg-green-50 rounded-lg">
-            <div className="text-2xl font-bold text-green-600">{stats.masteredCards}</div>
-            <div className="text-sm text-gray-600">Mastered</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Study Insights */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h3 className="text-lg font-semibold mb-4">Study Insights</h3>
-        <div className="space-y-3">
-          {stats.currentStreak > 0 && (
-            <div className="flex items-center space-x-2">
-              <Star className="text-yellow-500" size={16} />
-              <span>Great job! You're on a {stats.currentStreak}-day study streak!</span>
-            </div>
-          )}
-          {stats.averageSession < 15 && stats.totalSessions > 5 && (
-            <div className="flex items-center space-x-2">
-              <Clock className="text-blue-500" size={16} />
-              <span>Try longer study sessions (25+ minutes) for better focus.</span>
-            </div>
-          )}
-          {stats.dueCards > 5 && (
-            <div className="flex items-center space-x-2">
-              <Calendar className="text-red-500" size={16} />
-              <span>You have {stats.dueCards} cards due for review!</span>
-            </div>
-          )}
-          {stats.totalHours > 10 && (
-            <div className="flex items-center space-x-2">
-              <Brain className="text-purple-500" size={16} />
-              <span>Amazing! You've studied for {stats.totalHours} hours total.</span>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
 
 // Brain Blurts Component (Enhanced with better search)
 const BlurtsTab = ({ blurts, onAddBlurt, onDeleteBlurt }) => {
