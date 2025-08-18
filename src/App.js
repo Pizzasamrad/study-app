@@ -13,6 +13,7 @@ import Navigation from './components/Common/Navigation';
 import DashboardTab from './components/Dashboard/DashboardTab';
 import * as storageService from './services/storageService';
 import { getBackgroundClasses } from './services/customizationService';
+import * as userDataService from './services/userDataService';
 import './animations.css';
 
 const StudyApp = () => {
@@ -145,15 +146,40 @@ const StudyApp = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [cards, logs, blurtData] = await Promise.all([
+        const [
+          cards, 
+          logs, 
+          blurtData,
+          userProgress,
+          achievements,
+          customizations
+        ] = await Promise.all([
           storageService.getFlashcards(),
           storageService.getStudyLogs(),
-          storageService.getBlurts()
+          storageService.getBlurts(),
+          userDataService.loadUserProgress(),
+          userDataService.loadUserAchievements(),
+          userDataService.loadUserCustomizations()
         ]);
         
         setFlashcards(cards);
         setStudyLogs(logs);
         setBlurts(blurtData);
+        
+        // Load user progress and stats
+        if (userProgress) {
+          setDevStats(userProgress);
+        }
+        
+        // Load achievements
+        if (achievements) {
+          setDevAchievements(achievements.achievements || []);
+        }
+        
+        // Load customizations
+        if (customizations) {
+          setSelectedCustomizations(customizations);
+        }
       } catch (error) {
         console.error("Error loading data:", error);
       }
@@ -352,21 +378,39 @@ const StudyApp = () => {
     });
   };
 
-  const handleStudySessionComplete = (sessionData) => {
+  const handleStudySessionComplete = async (sessionData) => {
     setStudySession(null);
+    
     // Add study log for the session
     addStudyLog(
       `Study Session - ${sessionData.mode}`,
       Math.round(sessionData.duration / 60),
       `Completed ${sessionData.total} cards with ${sessionData.correct} correct answers`
     );
+    
+    // Update user stats
+    try {
+      const updatedStats = await userDataService.updateUserStats(sessionData, devStats);
+      setDevStats(updatedStats);
+    } catch (error) {
+      console.error('Error updating user stats:', error);
+    }
   };
 
-  const handleCustomizationChange = (type, customizationId) => {
-    setSelectedCustomizations(prev => ({
-      ...prev,
+  const handleCustomizationChange = async (type, customizationId) => {
+    const newCustomizations = {
+      ...selectedCustomizations,
       [type]: customizationId
-    }));
+    };
+    
+    setSelectedCustomizations(newCustomizations);
+    
+    // Save customizations
+    try {
+      await userDataService.saveUserCustomizations(newCustomizations);
+    } catch (error) {
+      console.error('Error saving customizations:', error);
+    }
   };
 
   const setCustomTimer = (minutes) => {
@@ -595,9 +639,30 @@ const StudyApp = () => {
         {/* Developer Testing Panel */}
         <DevTestPanel
           onSetLevel={setDevLevel}
-          onSetCustomizations={setSelectedCustomizations}
-          onSetAchievements={setDevAchievements}
-          onSetStats={setDevStats}
+          onSetCustomizations={async (customizations) => {
+            setSelectedCustomizations(customizations);
+            try {
+              await userDataService.saveUserCustomizations(customizations);
+            } catch (error) {
+              console.error('Error saving customizations:', error);
+            }
+          }}
+          onSetAchievements={async (achievements) => {
+            setDevAchievements(achievements);
+            try {
+              await userDataService.saveUserAchievements(achievements);
+            } catch (error) {
+              console.error('Error saving achievements:', error);
+            }
+          }}
+          onSetStats={async (stats) => {
+            setDevStats(stats);
+            try {
+              await userDataService.saveUserProgress(stats);
+            } catch (error) {
+              console.error('Error saving user stats:', error);
+            }
+          }}
           currentLevel={devLevel}
           selectedCustomizations={selectedCustomizations}
           achievements={devAchievements}

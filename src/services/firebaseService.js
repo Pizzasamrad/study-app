@@ -154,3 +154,27 @@ export const getBlurts = () => getDocuments('blurts');
 export const saveBlurt = (data) => saveDocument('blurts', data);
 export const updateBlurt = (id, updates) => updateDocument('blurts', id, updates);
 export const deleteBlurt = (id) => deleteDocument('blurts', id);
+
+// Concept Explanations
+export const getConceptExplanations = () => getDocuments('conceptExplanations');
+export const saveConceptExplanation = (data) => saveDocument('conceptExplanations', data);
+export const updateConceptExplanation = (id, updates) => updateDocument('conceptExplanations', id, updates);
+export const deleteConceptExplanation = (id) => deleteDocument('conceptExplanations', id);
+
+// User Progress & Stats
+export const getUserProgress = () => getDocuments('userProgress');
+export const saveUserProgress = (data) => saveDocument('userProgress', data);
+export const updateUserProgress = (id, updates) => updateDocument('userProgress', id, updates);
+export const deleteUserProgress = (id) => deleteDocument('userProgress', id);
+
+// Achievements
+export const getAchievements = () => getDocuments('achievements');
+export const saveAchievement = (data) => saveDocument('achievements', data);
+export const updateAchievement = (id, updates) => updateDocument('achievements', id, updates);
+export const deleteAchievement = (id) => deleteDocument('achievements', id);
+
+// Customizations
+export const getCustomizations = () => getDocuments('customizations');
+export const saveCustomization = (data) => saveDocument('customizations', data);
+export const updateCustomization = (id, updates) => updateDocument('customizations', id, updates);
+export const deleteCustomization = (id) => deleteDocument('customizations', id);

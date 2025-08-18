@@ -180,6 +180,30 @@ export const saveBlurt = (data) => saveItem('blurts', data);
 export const updateBlurt = (id, updates) => updateItem('blurts', id, updates);
 export const deleteBlurt = (id) => deleteItem('blurts', id);
 
+// Concept Explanations
+export const getConceptExplanations = () => getItems('conceptExplanations');
+export const saveConceptExplanation = (data) => saveItem('conceptExplanations', data);
+export const updateConceptExplanation = (id, updates) => updateItem('conceptExplanations', id, updates);
+export const deleteConceptExplanation = (id) => deleteItem('conceptExplanations', id);
+
+// User Progress & Stats
+export const getUserProgress = () => getItems('userProgress');
+export const saveUserProgress = (data) => saveItem('userProgress', data);
+export const updateUserProgress = (id, updates) => updateItem('userProgress', id, updates);
+export const deleteUserProgress = (id) => deleteItem('userProgress', id);
+
+// Achievements
+export const getAchievements = () => getItems('achievements');
+export const saveAchievement = (data) => saveItem('achievements', data);
+export const updateAchievement = (id, updates) => updateItem('achievements', id, updates);
+export const deleteAchievement = (id) => deleteItem('achievements', id);
+
+// Customizations
+export const getCustomizations = () => getItems('customizations');
+export const saveCustomization = (data) => saveItem('customizations', data);
+export const updateCustomization = (id, updates) => updateItem('customizations', id, updates);
+export const deleteCustomization = (id) => deleteItem('customizations', id);
+
 // Data migration functions
 export const migrateLocalToCloud = async () => {
   try {
@@ -191,12 +215,20 @@ export const migrateLocalToCloud = async () => {
     const localFlashcards = localStorageService.loadFromStorage('flashcards');
     const localStudyLogs = localStorageService.loadFromStorage('studyLogs');
     const localBlurts = localStorageService.loadFromStorage('blurts');
+    const localConceptExplanations = localStorageService.loadFromStorage('conceptExplanations');
+    const localUserProgress = localStorageService.loadFromStorage('userProgress');
+    const localAchievements = localStorageService.loadFromStorage('achievements');
+    const localCustomizations = localStorageService.loadFromStorage('customizations');
     
     // Upload to cloud
     const uploadPromises = [
       ...localFlashcards.map(card => firebaseService.saveFlashcard(card)),
       ...localStudyLogs.map(log => firebaseService.saveStudyLog(log)),
-      ...localBlurts.map(blurt => firebaseService.saveBlurt(blurt))
+      ...localBlurts.map(blurt => firebaseService.saveBlurt(blurt)),
+      ...localConceptExplanations.map(explanation => firebaseService.saveConceptExplanation(explanation)),
+      ...localUserProgress.map(progress => firebaseService.saveUserProgress(progress)),
+      ...localAchievements.map(achievement => firebaseService.saveAchievement(achievement)),
+      ...localCustomizations.map(customization => firebaseService.saveCustomization(customization))
     ];
     
     await Promise.all(uploadPromises);
@@ -204,7 +236,11 @@ export const migrateLocalToCloud = async () => {
     return {
       flashcards: localFlashcards.length,
       studyLogs: localStudyLogs.length,
-      blurts: localBlurts.length
+      blurts: localBlurts.length,
+      conceptExplanations: localConceptExplanations.length,
+      userProgress: localUserProgress.length,
+      achievements: localAchievements.length,
+      customizations: localCustomizations.length
     };
   } catch (error) {
     console.error("Error migrating data to cloud:", error);

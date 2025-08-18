@@ -86,11 +86,11 @@ const AdvancedStudyModes = ({
         answer: currentCard.back
       };
       
-      // Save to storage - using saveItem instead of saveData
+      // Save to storage using the proper function
       if (user) {
-        await storageService.saveItem('conceptExplanations', explanationData, user.uid);
+        await storageService.saveConceptExplanation(explanationData);
       } else {
-        await storageService.saveItem('conceptExplanations', explanationData);
+        await storageService.saveConceptExplanation(explanationData);
       }
       
       console.log('Concept explanation saved:', explanationData);
