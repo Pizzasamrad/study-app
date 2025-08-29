@@ -65,6 +65,11 @@ const StudyApp = () => {
       const mode = await storageService.initStorageMode();
       setStorageModeState(mode);
       
+      // Request notification permission for timer alerts
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+      
       // Set up auth state listener
       const unsubscribe = onAuthStateChanged(auth, (user) => {
         setUser(user);
@@ -190,20 +195,79 @@ const StudyApp = () => {
     }
   }, [isLoading, storageMode]);
 
-  // Pomodoro Timer Logic
+  // Pomodoro Timer Logic - Fixed for tab switching
+  const [timerStartTime, setTimerStartTime] = useState(null);
+  const [timerInitialDuration, setTimerInitialDuration] = useState(0);
+
+  // Helper function to handle timer completion
+  const handleTimerComplete = useCallback(() => {
+    setIsTimerActive(false);
+    setTimerStartTime(null);
+    setTimerInitialDuration(0);
+    
+    // Show notification even if tab is not active
+    if (Notification.permission === 'granted') {
+      new Notification('Pomodoro Complete!', {
+        body: 'Your study session is complete! Time to take a break.',
+        icon: '/favicon.ico',
+        requireInteraction: true
+      });
+    } else {
+      alert('Pomodoro session complete! Take a break.');
+    }
+    
+    setPomodoroTime(customInterval * 60);
+  }, [customInterval]);
+
+  // Handle page visibility changes to ensure accurate timing
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (isTimerActive && timerStartTime && timerInitialDuration > 0) {
+        // Recalculate time when tab becomes visible again
+        const now = Date.now();
+        const elapsedSeconds = Math.floor((now - timerStartTime) / 1000);
+        const remainingTime = Math.max(0, timerInitialDuration - elapsedSeconds);
+        setPomodoroTime(remainingTime);
+        
+        if (remainingTime <= 0) {
+          handleTimerComplete();
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isTimerActive, timerStartTime, timerInitialDuration, customInterval, handleTimerComplete]);
+
   useEffect(() => {
     let interval = null;
+    
     if (isTimerActive && pomodoroTime > 0) {
+      // Store the start time and initial duration when timer starts
+      if (!timerStartTime) {
+        setTimerStartTime(Date.now());
+        setTimerInitialDuration(pomodoroTime);
+      }
+      
       interval = setInterval(() => {
-        setPomodoroTime(time => time - 1);
+        const now = Date.now();
+        const elapsedSeconds = Math.floor((now - timerStartTime) / 1000);
+        const remainingTime = Math.max(0, timerInitialDuration - elapsedSeconds);
+        
+        setPomodoroTime(remainingTime);
+        
+        if (remainingTime <= 0) {
+          handleTimerComplete();
+        }
       }, 1000);
-    } else if (pomodoroTime === 0) {
-      setIsTimerActive(false);
-      alert('Pomodoro session complete! Take a break.');
-      setPomodoroTime(customInterval * 60);
+    } else if (!isTimerActive) {
+      // Reset timer state when stopped
+      setTimerStartTime(null);
+      setTimerInitialDuration(0);
     }
+    
     return () => clearInterval(interval);
-  }, [isTimerActive, pomodoroTime, customInterval]);
+  }, [isTimerActive, timerStartTime, timerInitialDuration, customInterval, handleTimerComplete]);
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -214,6 +278,8 @@ const StudyApp = () => {
   const resetTimer = () => {
     setIsTimerActive(false);
     setPomodoroTime(customInterval * 60);
+    setTimerStartTime(null);
+    setTimerInitialDuration(0);
   };
 
   // 🚀 NEW: Spaced Repetition Algorithm
@@ -263,10 +329,10 @@ const StudyApp = () => {
       
       // Celebrate first flashcard or milestone
       if (flashcards.length === 0) {
-        triggerCelebration('first_card', { message: '🎯 Your first flashcard is ready! The journey to mastery begins now!' });
+        triggerCelebration('first_card', { message: 'Your first flashcard is ready! The journey to mastery begins now!' });
       } else if ((flashcards.length + 1) % 10 === 0) {
         triggerCelebration('milestone', { 
-          message: `🚀 BOOM! ${flashcards.length + 1} flashcards created! You're building an incredible knowledge base!`,
+          message: `${flashcards.length + 1} flashcards created! You're building an incredible knowledge base!`,
           count: flashcards.length + 1 
         });
       }
@@ -320,9 +386,9 @@ const StudyApp = () => {
     // Celebrate review milestones
     const newReviewCount = (card.reviewCount || 0) + 1;
     if (newReviewCount === 1) {
-      triggerCelebration('first_review', { message: '🎊 First review crushed! Your brain is already getting stronger!' });
+      triggerCelebration('first_review', { message: 'First review completed! Your brain is already getting stronger!' });
     } else if (newReviewCount === 10) {
-      triggerCelebration('review_master', { message: '🏆 LEGEND STATUS! 10 reviews on this card - you\'re a memory master!' });
+              triggerCelebration('review_master', { message: '10 reviews on this card - you\'re a memory master!' });
     }
   };
 
@@ -347,12 +413,12 @@ const StudyApp = () => {
       
       if (streakData.milestone) {
         const messages = {
-          3: '🔥 3-day streak! You\'re building momentum!',
-          7: '🚀 7-day streak! You\'re on fire!',
-          14: '💪 14-day streak! Unstoppable!',
-          30: '🏆 30-day streak! LEGEND STATUS!',
-          50: '👑 50-day streak! ROYALTY!',
-          100: '🌟 100-day streak! IMMORTAL!'
+          3: '3-day streak! You\'re building momentum!',
+          7: '7-day streak! You\'re on fire!',
+          14: '14-day streak! Unstoppable!',
+          30: '30-day streak! Legend status!',
+          50: '50-day streak! Royalty!',
+          100: '100-day streak! Immortal!'
         };
         
         triggerCelebration('streak_milestone', {
@@ -417,6 +483,8 @@ const StudyApp = () => {
     setCustomInterval(minutes);
     setIsTimerActive(false);
     setPomodoroTime(minutes * 60);
+    setTimerStartTime(null);
+    setTimerInitialDuration(0);
   };
 
   const addBlurt = async (content, subject) => {
@@ -636,7 +704,10 @@ const StudyApp = () => {
           />
         )}
 
-        {/* Developer Testing Panel */}
+        {/* Developer Testing Panel - DISABLED */}
+        {/* 
+        To re-enable the dev testing panel, uncomment the code below:
+        
         <DevTestPanel
           onSetLevel={setDevLevel}
           onSetCustomizations={async (customizations) => {
@@ -668,6 +739,7 @@ const StudyApp = () => {
           achievements={devAchievements}
           stats={devStats}
         />
+        */}
       </div>
     </div>
   );
@@ -764,7 +836,7 @@ const FlashcardsTab = ({ flashcards, dueCards, onAddFlashcard, onUpdateFlashcard
               ← 🏠 Back to Cards
             </button>
             <span className="text-white font-bold text-lg">
-              📊 {currentCard + 1} of {dueCards.length} 🔥 (Due for Review)
+              {currentCard + 1} of {dueCards.length} (Due for Review)
             </span>
           </div>
         </div>
@@ -772,17 +844,17 @@ const FlashcardsTab = ({ flashcards, dueCards, onAddFlashcard, onUpdateFlashcard
         <div className="bg-gradient-to-br from-blue-500/20 to-cyan-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-12 min-h-96 flex flex-col justify-center items-center text-center shadow-2xl">
           <div className="mb-6 flex flex-wrap items-center justify-center gap-3">
             <span className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-4 py-2 rounded-full font-bold">
-              📚 {card.subject}
+              {card.subject}
             </span>
-            {card.reviewCount > 0 && (
-              <span className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-full font-bold">
-                ⭐ Reviewed {card.reviewCount} times
-              </span>
-            )}
+                          {card.reviewCount > 0 && (
+                <span className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-full font-bold">
+                  Reviewed {card.reviewCount} times
+                </span>
+              )}
           </div>
           
           <div className="text-2xl font-bold text-white mb-8 min-h-24 flex items-center justify-center leading-relaxed max-w-2xl">
-            {showAnswer ? `💡 ${card.back}` : `❓ ${card.front}`}
+            {showAnswer ? card.back : card.front}
           </div>
 
           {!showAnswer ? (
@@ -790,29 +862,29 @@ const FlashcardsTab = ({ flashcards, dueCards, onAddFlashcard, onUpdateFlashcard
               onClick={() => setShowAnswer(true)}
               className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-10 py-4 rounded-2xl hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 font-bold text-lg shadow-lg hover:shadow-blue-500/50 transform hover:scale-105 mb-6"
             >
-              ✨ Show Answer
+              Show Answer
             </button>
           ) : (
             <div className="space-y-6">
-              <p className="text-white/80 mb-6 text-lg font-medium">🤔 How well did you remember this?</p>
+              <p className="text-white/80 mb-6 text-lg font-medium">How well did you remember this?</p>
               <div className="flex flex-col sm:flex-row gap-4 mb-6">
                 <button 
                   onClick={() => handleReview('hard')}
                   className="bg-gradient-to-r from-red-500 to-pink-600 text-white px-8 py-4 rounded-2xl hover:from-red-600 hover:to-pink-700 transition-all duration-300 font-bold shadow-lg hover:shadow-red-500/50 transform hover:scale-105"
                 >
-                  😰 Hard
+                                      Hard
                 </button>
                 <button 
                   onClick={() => handleReview('medium')}
                   className="bg-gradient-to-r from-yellow-500 to-orange-600 text-white px-8 py-4 rounded-2xl hover:from-yellow-600 hover:to-orange-700 transition-all duration-300 font-bold shadow-lg hover:shadow-yellow-500/50 transform hover:scale-105"
                 >
-                  🤔 Medium
+                                      Medium
                 </button>
                 <button 
                   onClick={() => handleReview('easy')}
                   className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-8 py-4 rounded-2xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 font-bold shadow-lg hover:shadow-green-500/50 transform hover:scale-105"
                 >
-                  😎 Easy
+                                      Easy
                 </button>
               </div>
             </div>
@@ -823,13 +895,13 @@ const FlashcardsTab = ({ flashcards, dueCards, onAddFlashcard, onUpdateFlashcard
               onClick={prevCard} 
               className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-8 py-3 rounded-2xl hover:from-gray-600 hover:to-gray-700 transition-all duration-300 font-bold shadow-lg hover:shadow-gray-500/50 transform hover:scale-105"
             >
-              ⬅️ Previous
+              Previous
             </button>
             <button 
               onClick={nextCard} 
               className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-8 py-3 rounded-2xl hover:from-gray-600 hover:to-gray-700 transition-all duration-300 font-bold shadow-lg hover:shadow-gray-500/50 transform hover:scale-105"
             >
-              Next ➡️
+              Next
             </button>
           </div>
         </div>
@@ -844,7 +916,7 @@ const FlashcardsTab = ({ flashcards, dueCards, onAddFlashcard, onUpdateFlashcard
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center space-y-6 lg:space-y-0">
           <div>
             <h2 className="text-4xl font-black text-white mb-2 flex items-center">
-              🧠 Flashcards
+              Flashcards
             </h2>
             <p className="text-white/80 text-lg">Master your knowledge with spaced repetition</p>
           </div>
@@ -860,7 +932,7 @@ const FlashcardsTab = ({ flashcards, dueCards, onAddFlashcard, onUpdateFlashcard
                 className="bg-gradient-to-r from-red-500 to-pink-600 text-white px-6 py-3 rounded-2xl hover:from-red-600 hover:to-pink-700 transition-all duration-300 font-bold shadow-lg hover:shadow-red-500/50 transform hover:scale-105 flex items-center"
               >
                 <Calendar className="mr-2" size={20} />
-                🔥 Review Due ({dueCards.length})
+                Review Due ({dueCards.length})
               </button>
             )}
 
@@ -869,7 +941,7 @@ const FlashcardsTab = ({ flashcards, dueCards, onAddFlashcard, onUpdateFlashcard
               className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-6 py-3 rounded-2xl hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 font-bold shadow-lg hover:shadow-blue-500/50 transform hover:scale-105 flex items-center"
             >
               <Plus className="mr-2" size={20} />
-              ✨ Add Card
+                              Add Card
             </button>
           </div>
         </div>
@@ -883,7 +955,7 @@ const FlashcardsTab = ({ flashcards, dueCards, onAddFlashcard, onUpdateFlashcard
               <Search className="absolute left-4 top-4 text-white/60" size={20} />
               <input
                 type="text"
-                placeholder="🔍 Search flashcards..."
+                placeholder="Search flashcards..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-12 pr-4 py-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent font-medium"
@@ -906,12 +978,12 @@ const FlashcardsTab = ({ flashcards, dueCards, onAddFlashcard, onUpdateFlashcard
 
       {showForm && (
         <div className="bg-gradient-to-br from-green-500/20 to-emerald-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-8 shadow-2xl">
-          <h3 className="text-3xl font-bold text-white mb-6 flex items-center">
-            {editingCard ? '✏️ Edit Flashcard' : '✨ Create New Flashcard'}
-          </h3>
+                      <h3 className="text-3xl font-bold text-white mb-6 flex items-center">
+              {editingCard ? 'Edit Flashcard' : 'Create New Flashcard'}
+            </h3>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             <div>
-              <label className="block text-white font-bold mb-3 text-lg">❓ Question/Front</label>
+              <label className="block text-white font-bold mb-3 text-lg">Question/Front</label>
               <textarea
                 value={front}
                 onChange={(e) => setFront(e.target.value)}
@@ -921,7 +993,7 @@ const FlashcardsTab = ({ flashcards, dueCards, onAddFlashcard, onUpdateFlashcard
               />
             </div>
             <div>
-              <label className="block text-white font-bold mb-3 text-lg">💡 Answer/Back</label>
+              <label className="block text-white font-bold mb-3 text-lg">Answer/Back</label>
               <textarea
                 value={back}
                 onChange={(e) => setBack(e.target.value)}
@@ -932,7 +1004,7 @@ const FlashcardsTab = ({ flashcards, dueCards, onAddFlashcard, onUpdateFlashcard
             </div>
           </div>
           <div className="mb-6">
-            <label className="block text-white font-bold mb-3 text-lg">📚 Subject</label>
+                          <label className="block text-white font-bold mb-3 text-lg">Subject</label>
             <input
               type="text"
               value={subject}
@@ -947,13 +1019,13 @@ const FlashcardsTab = ({ flashcards, dueCards, onAddFlashcard, onUpdateFlashcard
               disabled={saving}
               className="bg-gradient-to-r from-emerald-500 to-green-600 text-white px-8 py-4 rounded-2xl hover:from-emerald-600 hover:to-green-700 transition-all duration-300 font-bold shadow-lg hover:shadow-emerald-500/50 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
             >
-              {saving ? '⏳ Saving...' : editingCard ? '✅ Update Card' : '🚀 Create Card'}
+                              {saving ? 'Saving...' : editingCard ? 'Update Card' : 'Create Card'}
             </button>
             <button
               onClick={cancelEdit}
               className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-8 py-4 rounded-2xl hover:from-gray-600 hover:to-gray-700 transition-all duration-300 font-bold shadow-lg hover:shadow-gray-500/50 transform hover:scale-105 flex items-center justify-center"
             >
-              ❌ Cancel
+                              Cancel
             </button>
           </div>
         </div>
@@ -968,18 +1040,18 @@ const FlashcardsTab = ({ flashcards, dueCards, onAddFlashcard, onUpdateFlashcard
               <div className="flex justify-between items-start mb-4 relative z-10">
                 <div className="flex flex-wrap gap-2">
                   <span className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-3 py-1 rounded-full text-sm font-bold">
-                    📚 {card.subject}
+                    {card.subject}
                   </span>
-                  {isDue && (
-                    <span className="bg-gradient-to-r from-red-500 to-pink-600 text-white px-3 py-1 rounded-full text-sm font-bold animate-pulse">
-                      🔥 Due
-                    </span>
-                  )}
-                  {card.reviewCount > 0 && (
-                    <span className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-1 rounded-full text-sm font-bold">
-                      ⭐ {card.reviewCount} reviews
-                    </span>
-                  )}
+                                      {isDue && (
+                      <span className="bg-gradient-to-r from-red-500 to-pink-600 text-white px-3 py-1 rounded-full text-sm font-bold animate-pulse">
+                        Due
+                      </span>
+                    )}
+                                      {card.reviewCount > 0 && (
+                      <span className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-1 rounded-full text-sm font-bold">
+                        {card.reviewCount} reviews
+                      </span>
+                    )}
                 </div>
                 <div className="flex space-x-2">
                   <button
@@ -997,15 +1069,15 @@ const FlashcardsTab = ({ flashcards, dueCards, onAddFlashcard, onUpdateFlashcard
                 </div>
               </div>
               <div className="mb-4 relative z-10">
-                <p className="font-bold text-white mb-2 text-lg">❓ Question:</p>
+                <p className="font-bold text-white mb-2 text-lg">Question:</p>
                 <p className="text-white/90 font-medium leading-relaxed">{card.front}</p>
               </div>
               <div className="mb-4 relative z-10">
-                <p className="font-bold text-white mb-2 text-lg">💡 Answer:</p>
+                <p className="font-bold text-white mb-2 text-lg">Answer:</p>
                 <p className="text-white/90 font-medium leading-relaxed">{card.back}</p>
               </div>
               <div className="flex justify-between items-center text-sm text-white/60 border-t border-white/10 pt-4 relative z-10">
-                <span>📅 Created: {card.displayDate}</span>
+                <span>Created: {card.displayDate}</span>
                 {card.nextReviewDate && (
                   <span>Next: {new Date(card.nextReviewDate).toLocaleDateString()}</span>
                 )}
@@ -1017,7 +1089,7 @@ const FlashcardsTab = ({ flashcards, dueCards, onAddFlashcard, onUpdateFlashcard
 
       {filteredCards.length === 0 && !showForm && (
         <div className="bg-gradient-to-br from-gray-500/20 to-gray-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-12 shadow-2xl text-center animate-bounce-in">
-          <div className="text-6xl mb-6">🧠</div>
+          <div className="text-6xl mb-6">📚</div>
           <p className="text-white/80 mb-6 text-xl font-medium">
             {flashcards.length === 0 
               ? "No flashcards yet. Create your first card to get started!" 
@@ -1028,7 +1100,7 @@ const FlashcardsTab = ({ flashcards, dueCards, onAddFlashcard, onUpdateFlashcard
               onClick={() => setShowForm(true)}
               className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-8 py-4 rounded-2xl hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 font-bold shadow-lg hover:shadow-blue-500/50 transform hover:scale-105"
             >
-              ✨ Create First Card
+              Create First Card
             </button>
           )}
         </div>
@@ -1061,16 +1133,16 @@ const PomodoroTab = ({ time, isActive, onToggle, onReset, formatTime, onAddStudy
       {/* Header Section */}
       <div className="bg-gradient-to-br from-green-500/20 to-teal-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-8 shadow-2xl animate-slide-up text-center">
         <h2 className="text-4xl font-black text-white mb-4 flex items-center justify-center">
-          ⏰ Pomodoro Focus Timer
+          Pomodoro Focus Timer
         </h2>
         <p className="text-white/80 text-xl font-medium max-w-2xl mx-auto">
-          🎯 Boost your productivity with focused study sessions and break intervals ⚡
+          Boost your productivity with focused study sessions and break intervals
         </p>
       </div>
       
       {/* Session Length Selection */}
       <div className="bg-gradient-to-br from-blue-500/20 to-cyan-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-8 shadow-2xl animate-slide-up" style={{animationDelay: '0.1s'}}>
-        <h3 className="text-3xl font-bold text-white mb-6 text-center">⚙️ Session Length</h3>
+        <h3 className="text-3xl font-bold text-white mb-6 text-center">Session Length</h3>
         <div className="flex flex-wrap justify-center gap-4">
           {[15, 25, 45, 60].map(minutes => (
             <button
@@ -1090,6 +1162,8 @@ const PomodoroTab = ({ time, isActive, onToggle, onReset, formatTime, onAddStudy
       
       {/* Main Timer */}
       <div className="bg-gradient-to-br from-purple-500/20 to-pink-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-12 shadow-2xl animate-slide-up text-center" style={{animationDelay: '0.2s'}}>
+
+        
         <div className="relative inline-block mb-8">
           <div className="text-8xl md:text-9xl font-black text-white mb-6 animate-pulse">
             {formatTime(time)}
@@ -1107,7 +1181,7 @@ const PomodoroTab = ({ time, isActive, onToggle, onReset, formatTime, onAddStudy
             }`}
           >
             {isActive ? <Pause className="mr-3" size={24} /> : <Play className="mr-3" size={24} />}
-            {isActive ? '⏸️ Pause' : '▶️ Start Focus'}
+            {isActive ? 'Pause' : 'Start Focus'}
           </button>
           
           <button
@@ -1115,7 +1189,7 @@ const PomodoroTab = ({ time, isActive, onToggle, onReset, formatTime, onAddStudy
             className="flex items-center justify-center px-10 py-5 rounded-2xl bg-gradient-to-r from-gray-500 to-gray-600 text-white font-bold text-xl hover:from-gray-600 hover:to-gray-700 transition-all duration-300 shadow-2xl hover:shadow-gray-500/50 transform hover:scale-105"
           >
             <RotateCcw className="mr-3" size={24} />
-            🔄 Reset
+            Reset
           </button>
         </div>
 
@@ -1123,18 +1197,18 @@ const PomodoroTab = ({ time, isActive, onToggle, onReset, formatTime, onAddStudy
           onClick={() => setShowLogForm(true)}
           className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-8 py-4 rounded-2xl hover:from-indigo-600 hover:to-purple-700 transition-all duration-300 font-bold shadow-lg hover:shadow-indigo-500/50 transform hover:scale-105"
         >
-          📝 Log Study Session
+          Log Study Session
         </button>
       </div>
 
       {showLogForm && (
         <div className="bg-gradient-to-br from-orange-500/20 to-red-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-8 shadow-2xl animate-bounce-in">
           <h3 className="text-3xl font-bold text-white mb-6 flex items-center">
-            📝 Log Your Study Session
+            Log Your Study Session
           </h3>
           <div className="space-y-6">
             <div>
-              <label className="block text-white font-bold mb-3 text-lg">📚 What did you study?</label>
+              <label className="block text-white font-bold mb-3 text-lg">What did you study?</label>
               <input
                 type="text"
                 value={subject}
@@ -1144,7 +1218,7 @@ const PomodoroTab = ({ time, isActive, onToggle, onReset, formatTime, onAddStudy
               />
             </div>
             <div>
-              <label className="block text-white font-bold mb-3 text-lg">💭 Notes (optional)</label>
+              <label className="block text-white font-bold mb-3 text-lg">Notes (optional)</label>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
@@ -1159,13 +1233,13 @@ const PomodoroTab = ({ time, isActive, onToggle, onReset, formatTime, onAddStudy
                 disabled={saving}
                 className="bg-gradient-to-r from-orange-500 to-red-600 text-white px-8 py-4 rounded-2xl hover:from-orange-600 hover:to-red-700 transition-all duration-300 font-bold shadow-lg hover:shadow-orange-500/50 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               >
-                {saving ? '⏳ Saving...' : '✅ Log Session'}
+                {saving ? 'Saving...' : 'Log Session'}
               </button>
               <button
                 onClick={() => setShowLogForm(false)}
                 className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-8 py-4 rounded-2xl hover:from-gray-600 hover:to-gray-700 transition-all duration-300 font-bold shadow-lg hover:shadow-gray-500/50 transform hover:scale-105 flex items-center justify-center"
               >
-                ❌ Cancel
+                Cancel
               </button>
             </div>
           </div>
@@ -1175,22 +1249,22 @@ const PomodoroTab = ({ time, isActive, onToggle, onReset, formatTime, onAddStudy
       {/* How It Works */}
       <div className="bg-gradient-to-br from-teal-500/20 to-green-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-8 shadow-2xl animate-slide-up" style={{animationDelay: '0.3s'}}>
         <h3 className="text-3xl font-bold text-white mb-6 flex items-center">
-          🎯 How Pomodoro Works
+          How Pomodoro Works
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-            <div className="text-4xl mb-4">⏱️</div>
-            <h4 className="text-white font-bold text-lg mb-2">1. Choose Focus Time</h4>
+            <div className="text-4xl mb-4">1</div>
+            <h4 className="text-white font-bold text-lg mb-2">Choose Focus Time</h4>
             <p className="text-white/80">Select 15-60 minutes for deep concentration</p>
           </div>
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-            <div className="text-4xl mb-4">🎯</div>
-            <h4 className="text-white font-bold text-lg mb-2">2. Study Intensely</h4>
+            <div className="text-4xl mb-4">2</div>
+            <h4 className="text-white font-bold text-lg mb-2">Study Intensely</h4>
             <p className="text-white/80">Focus completely on your subject</p>
           </div>
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-            <div className="text-4xl mb-4">☕</div>
-            <h4 className="text-white font-bold text-lg mb-2">3. Take Breaks</h4>
+            <div className="text-4xl mb-4">3</div>
+            <h4 className="text-white font-bold text-lg mb-2">Take Breaks</h4>
             <p className="text-white/80">5-minute breaks, longer after 4 sessions</p>
           </div>
         </div>
@@ -1234,23 +1308,23 @@ const BlurtsTab = ({ blurts, onAddBlurt, onDeleteBlurt }) => {
       {/* Header Section */}
       <div className="bg-gradient-to-br from-yellow-500/20 to-orange-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-8 shadow-2xl animate-slide-up">
         <div className="text-center">
-          <h2 className="text-4xl font-black text-white mb-4 flex items-center justify-center">
-            🧠 Brain Blurts
-          </h2>
-          <p className="text-white/80 text-xl font-medium max-w-2xl mx-auto">
-            💡 Capture brilliant thoughts, insights, and key concepts instantly while studying ✨
-          </p>
+                      <h2 className="text-4xl font-black text-white mb-4 flex items-center justify-center">
+              Brain Blurts
+            </h2>
+            <p className="text-white/80 text-xl font-medium max-w-2xl mx-auto">
+              Capture brilliant thoughts, insights, and key concepts instantly while studying
+            </p>
         </div>
       </div>
 
       {/* Add New Blurt Form */}
       <div className="bg-gradient-to-br from-purple-500/20 to-pink-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-8 shadow-2xl animate-slide-up" style={{animationDelay: '0.1s'}}>
-        <h3 className="text-3xl font-bold text-white mb-6 flex items-center">
-          ✨ Capture Your Thoughts
-        </h3>
+                  <h3 className="text-3xl font-bold text-white mb-6 flex items-center">
+            Capture Your Thoughts
+          </h3>
         <div className="space-y-6">
           <div>
-            <label className="block text-white font-bold mb-3 text-lg">💭 What's on your mind?</label>
+                          <label className="block text-white font-bold mb-3 text-lg">What's on your mind?</label>
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -1261,7 +1335,7 @@ const BlurtsTab = ({ blurts, onAddBlurt, onDeleteBlurt }) => {
           </div>
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
-              <label className="block text-white font-bold mb-3 text-lg">📚 Subject (optional)</label>
+              <label className="block text-white font-bold mb-3 text-lg">Subject (optional)</label>
               <input
                 type="text"
                 value={subject}
@@ -1277,7 +1351,7 @@ const BlurtsTab = ({ blurts, onAddBlurt, onDeleteBlurt }) => {
                 className="bg-gradient-to-r from-purple-500 to-pink-600 text-white px-8 py-4 rounded-2xl hover:from-purple-600 hover:to-pink-700 transition-all duration-300 font-bold shadow-lg hover:shadow-purple-500/50 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
                 <Save className="mr-2" size={20} />
-                {saving ? '⏳ Saving...' : '🚀 Save Blurt'}
+                {saving ? 'Saving...' : 'Save Blurt'}
               </button>
             </div>
           </div>
@@ -1293,7 +1367,7 @@ const BlurtsTab = ({ blurts, onAddBlurt, onDeleteBlurt }) => {
                 <Search className="absolute left-4 top-4 text-white/60" size={20} />
                 <input
                   type="text"
-                  placeholder="🔍 Search your brilliant thoughts..."
+                  placeholder="Search your brilliant thoughts..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-12 pr-4 py-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent font-medium"
@@ -1307,7 +1381,7 @@ const BlurtsTab = ({ blurts, onAddBlurt, onDeleteBlurt }) => {
             >
               {subjects.map(subject => (
                 <option key={subject} value={subject} className="bg-gray-800 text-white">
-                  {subject === 'all' ? '📚 All Subjects' : `📖 ${subject}`}
+                  {subject === 'all' ? 'All Subjects' : subject}
                 </option>
               ))}
             </select>
@@ -1319,7 +1393,7 @@ const BlurtsTab = ({ blurts, onAddBlurt, onDeleteBlurt }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredBlurts.length === 0 ? (
           <div className="col-span-full bg-gradient-to-br from-gray-500/20 to-gray-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-12 shadow-2xl text-center animate-bounce-in">
-            <div className="text-6xl mb-6">💭</div>
+            <div className="text-6xl mb-6">📝</div>
             <p className="text-white/80 mb-6 text-xl font-medium">
               {blurts.length === 0 
                 ? "No brain blurts yet. Start capturing your brilliant thoughts!" 
@@ -1332,10 +1406,10 @@ const BlurtsTab = ({ blurts, onAddBlurt, onDeleteBlurt }) => {
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
               <div className="flex justify-between items-start mb-4 relative z-10">
                 <span className="bg-gradient-to-r from-purple-500 to-pink-600 text-white px-3 py-1 rounded-full text-sm font-bold">
-                  📚 {blurt.subject}
+                  {blurt.subject}
                 </span>
                 <div className="flex items-center space-x-3">
-                  <span className="text-white/60 text-sm font-medium">📅 {blurt.timestamp}</span>
+                  <span className="text-white/60 text-sm font-medium">{blurt.timestamp}</span>
                   <button
                     onClick={() => onDeleteBlurt(blurt.id)}
                     className="p-2 bg-red-500/20 backdrop-blur-sm rounded-xl text-red-300 hover:text-red-100 hover:bg-red-500/30 transition-all duration-200 transform hover:scale-110"
