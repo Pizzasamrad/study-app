@@ -17,12 +17,12 @@ const SmartAnalytics = ({ studyLogs, flashcards, blurts }) => {
     const averageSessionTime = totalSessions > 0 ? Math.round(totalStudyTime / totalSessions) : 0;
     
     // Calculate study streak
-    const sortedLogs = studyLogs.sort((a, b) => new Date(b.createdAt || Date.now()) - new Date(a.createdAt || Date.now()));
+    const sortedLogs = studyLogs.sort((a, b) => new Date(b.timestamp || b.createdAt || Date.now()) - new Date(a.timestamp || a.createdAt || Date.now()));
     let currentStreak = 0;
     let lastDate = new Date().toDateString();
     
     for (const log of sortedLogs) {
-      const logDate = new Date(log.createdAt || Date.now()).toDateString();
+      const logDate = new Date(log.timestamp || log.createdAt || Date.now()).toDateString();
       if (logDate === lastDate) {
         if (currentStreak === 0) currentStreak = 1;
       } else {
@@ -48,7 +48,7 @@ const SmartAnalytics = ({ studyLogs, flashcards, blurts }) => {
       const date = new Date();
       date.setDate(date.getDate() - i);
       const dayLogs = studyLogs.filter(log => {
-        const logDate = new Date(log.createdAt || Date.now());
+        const logDate = new Date(log.timestamp || log.createdAt || Date.now());
         return logDate.toDateString() === date.toDateString();
       });
       const dayTime = dayLogs.reduce((sum, log) => sum + (log.duration || 0), 0);

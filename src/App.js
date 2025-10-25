@@ -12,6 +12,7 @@ import DashboardTab from './components/Dashboard/DashboardTab';
 import * as storageService from './services/storageService';
 import { getBackgroundClasses } from './services/customizationService';
 import * as userDataService from './services/userDataService';
+import { calculateTotalXP, calculateLevel } from './services/levelService';
 import './animations.css';
 
 const StudyApp = () => {
@@ -59,6 +60,31 @@ const StudyApp = () => {
       // Initialize storage mode
       const mode = await storageService.initStorageMode();
       setStorageModeState(mode);
+      
+      // Load all user data
+      try {
+        const [loadedFlashcards, loadedStudyLogs, loadedBlurts, loadedCustomizations] = await Promise.all([
+          storageService.getFlashcards(),
+          storageService.getStudyLogs(),
+          storageService.getBlurts(),
+          storageService.getCustomizations()
+        ]);
+        
+        setFlashcards(loadedFlashcards || []);
+        setStudyLogs(loadedStudyLogs || []);
+        setBlurts(loadedBlurts || []);
+        
+        // Load customizations
+        if (loadedCustomizations && loadedCustomizations.length > 0) {
+          const latestCustomizations = loadedCustomizations[loadedCustomizations.length - 1];
+          setSelectedCustomizations({
+            avatars: latestCustomizations.avatars || 'default',
+            backgrounds: latestCustomizations.backgrounds || 'default'
+          });
+        }
+      } catch (error) {
+        console.error('Error loading user data:', error);
+      }
       
       // Request notification permission for timer alerts
       if ('Notification' in window && Notification.permission === 'default') {
@@ -362,6 +388,13 @@ const StudyApp = () => {
 
     await updateFlashcard(id, updates);
     
+    // Log study session for analytics and XP
+    try {
+      await addStudyLog(card.subject || 'General', 1, `Reviewed flashcard: ${card.front}`);
+    } catch (error) {
+      console.error('Error logging study session:', error);
+    }
+    
     // Celebrate review milestones
     const newReviewCount = (card.reviewCount || 0) + 1;
     if (newReviewCount === 1) {
@@ -378,7 +411,8 @@ const StudyApp = () => {
         duration,
         notes,
         date: new Date().toLocaleDateString(),
-        time: new Date().toLocaleTimeString()
+        time: new Date().toLocaleTimeString(),
+        timestamp: new Date().toISOString()
       };
       
       const savedLog = await storageService.saveStudyLog(newLog);
@@ -386,8 +420,30 @@ const StudyApp = () => {
       // Update local state
       setStudyLogs(prev => [...prev, savedLog]);
       
-      // Check for streak milestones with updated logs
+      // Calculate and update XP
       const updatedLogs = [...studyLogs, savedLog];
+      const totalXP = calculateTotalXP(updatedLogs, flashcards, blurts, { current: 1 });
+      const levelData = calculateLevel(totalXP);
+      
+      // Update user stats with XP
+      try {
+        await userDataService.updateUserStats({
+          duration,
+          total: 1,
+          xpEarned: duration * 10 // 10 XP per minute
+        }, devStats);
+        
+        // Update dev stats for XP display
+        setDevStats(prev => ({
+          ...prev,
+          totalStudyTime: prev.totalStudyTime + duration,
+          totalSessions: prev.totalSessions + 1
+        }));
+      } catch (error) {
+        console.error('Error updating user stats:', error);
+      }
+      
+      // Check for streak milestones with updated logs
       const streakData = calculateStreak(updatedLogs);
       
       if (streakData.milestone) {
@@ -420,8 +476,15 @@ const StudyApp = () => {
     
     setSelectedCustomizations(newCustomizations);
     
-    // Save customizations
+    // Save customizations to storage
     try {
+      await storageService.saveCustomization({
+        type,
+        customizationId,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Also save to user data service if available
       await userDataService.saveUserCustomizations(newCustomizations);
     } catch (error) {
       console.error('Error saving customizations:', error);
