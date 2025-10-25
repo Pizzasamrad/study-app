@@ -77,6 +77,9 @@ const AdvancedStudyModes = ({
   // Save concept explanation
   const saveConceptExplanation = async (cardId, explanation) => {
     try {
+      const currentCard = studyCards[currentCardIndex];
+      if (!currentCard) return;
+      
       const explanationData = {
         id: Date.now().toString(),
         cardId,

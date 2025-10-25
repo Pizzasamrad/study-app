@@ -813,7 +813,9 @@ const FlashcardsTab = ({ flashcards, availableCategories, onAddFlashcard, onUpda
   };
 
   const handleReview = async (difficulty) => {
+    if (currentCard >= studyCards.length || currentCard < 0) return;
     const card = studyCards[currentCard];
+    if (!card) return;
     await onReviewFlashcard(card.id, difficulty);
     nextCard();
   };
@@ -892,11 +894,13 @@ const FlashcardsTab = ({ flashcards, availableCategories, onAddFlashcard, onUpda
     setUserAnswer('');
     setShowAnswer(false);
     
-    if (mode === 'cloze' && studyCards[currentCard]) {
+    if (mode === 'cloze' && studyCards.length > 0 && currentCard < studyCards.length) {
       const card = studyCards[currentCard];
-      const cloze = generateClozeDeletion(card.back, card.highlightedWords || [], card.id);
-      setClozeText(cloze.text);
-      setClozeAnswer(cloze.answer);
+      if (card) {
+        const cloze = generateClozeDeletion(card.back, card.highlightedWords || [], card.id);
+        setClozeText(cloze.text);
+        setClozeAnswer(cloze.answer);
+      }
     }
   };
 
@@ -917,8 +921,9 @@ const FlashcardsTab = ({ flashcards, availableCategories, onAddFlashcard, onUpda
     }
   };
 
-  if (studyMode && studyCards.length > 0) {
+  if (studyMode && studyCards.length > 0 && currentCard < studyCards.length) {
     const card = studyCards[currentCard];
+    if (!card) return null;
     
     return (
       <div className="fixed inset-0 bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 z-50 flex flex-col">

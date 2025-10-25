@@ -86,8 +86,15 @@ const localStorageService = {
   updateInStorage: (collection, id, updates) => {
     const key = `${deviceId}-${collection}`;
     const existing = JSON.parse(localStorage.getItem(key) || '[]');
+    const existingItem = existing.find(item => item.id === id);
+    
+    if (!existingItem) {
+      console.warn(`Item with id ${id} not found in ${collection}`);
+      return null;
+    }
+    
     const updatedItem = { 
-      ...existing.find(item => item.id === id), 
+      ...existingItem, 
       ...updates, 
       updatedAt: new Date().toISOString() 
     };
