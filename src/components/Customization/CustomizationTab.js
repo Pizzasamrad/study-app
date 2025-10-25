@@ -187,28 +187,6 @@ const CustomizationTab = ({
         </div>
       </div>
 
-      {/* Next Unlocks Preview */}
-      {(nextUnlocks[activeTab] || []).length > 0 && (
-        <div className="bg-gradient-to-br from-yellow-500/20 to-orange-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-6 shadow-2xl">
-          <h3 className="text-xl font-bold text-white mb-4 flex items-center">
-            <Target className="mr-3 text-yellow-400" size={24} />
-            Coming Soon - {(nextUnlocks[activeTab] || []).length} more to unlock!
-          </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {(nextUnlocks[activeTab] || []).slice(0, 3).map(item => (
-              <div key={item.id} className="bg-white/10 rounded-2xl p-4 border border-white/20 opacity-60">
-                <div className="text-center">
-                  {activeTab === 'avatars' && <div className="text-3xl mb-2">{item.emoji}</div>}
-                  <div className="font-bold text-white text-sm">{item.name}</div>
-                  <div className="text-yellow-200 text-xs">
-                    {item.level > 0 ? `Level ${item.level}` : item.requirement}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
 
     </div>

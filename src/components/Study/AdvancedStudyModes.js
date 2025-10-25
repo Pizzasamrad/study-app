@@ -99,27 +99,43 @@ const AdvancedStudyModes = ({
     }
   };
 
-  // Generate cloze deletion
-  const generateClozeDeletion = (text) => {
+  // Generate cloze deletion using highlighted words
+  const generateClozeDeletion = (text, highlightedWords = []) => {
     if (!text || text.trim().length === 0) {
       return { text: 'No content available', answer: '' };
     }
     
-    // Simple cloze generation - replace key terms with blanks
-    const words = text.split(' ');
-    const keyWords = words.filter(word => 
-      word.length > 4 && !['the', 'and', 'for', 'with', 'this', 'that'].includes(word.toLowerCase())
-    );
-    
-    if (keyWords.length === 0) {
-      // If no suitable words, just return the original text
-      return { text: text, answer: 'No cloze available' };
+    // If no highlighted words, fall back to simple cloze generation
+    if (!highlightedWords || highlightedWords.length === 0) {
+      const words = text.split(' ');
+      const keyWords = words.filter(word => 
+        word.length > 4 && !['the', 'and', 'for', 'with', 'this', 'that'].includes(word.toLowerCase())
+      );
+      
+      if (keyWords.length === 0) {
+        return { text: text, answer: 'No cloze available' };
+      }
+      
+      const randomWord = keyWords[Math.floor(Math.random() * keyWords.length)];
+      const clozeText = text.replace(new RegExp(randomWord, 'gi'), '_____');
+      
+      return { text: clozeText, answer: randomWord };
     }
     
-    const randomWord = keyWords[Math.floor(Math.random() * keyWords.length)];
-    const clozeText = text.replace(new RegExp(randomWord, 'gi'), '_____');
+    // Use highlighted words for cloze deletion
+    const availableWords = highlightedWords.filter(word => 
+      text.toLowerCase().includes(word.toLowerCase())
+    );
     
-    return { text: clozeText, answer: randomWord };
+    if (availableWords.length === 0) {
+      return { text: text, answer: 'No highlighted words found in text' };
+    }
+    
+    // Randomly select one of the highlighted words
+    const selectedWord = availableWords[Math.floor(Math.random() * availableWords.length)];
+    const clozeText = text.replace(new RegExp(selectedWord, 'gi'), '_____');
+    
+    return { text: clozeText, answer: selectedWord };
   };
 
   // Check answer based on study mode
@@ -176,7 +192,7 @@ const AdvancedStudyModes = ({
       // Prepare next card based on mode
       const nextCard = studyCards[currentCardIndex + 1];
       if (nextCard && studyMode === 'cloze') {
-        const cloze = generateClozeDeletion(nextCard.back);
+        const cloze = generateClozeDeletion(nextCard.back, nextCard.highlightedWords || []);
         setClozeText(cloze.text);
         setClozeAnswer(cloze.answer);
       }
@@ -215,7 +231,7 @@ const AdvancedStudyModes = ({
     if (studyCards.length > 0 && currentCardIndex < studyCards.length) {
       const currentCard = studyCards[currentCardIndex];
       if (studyMode === 'cloze') {
-        const cloze = generateClozeDeletion(currentCard.back);
+        const cloze = generateClozeDeletion(currentCard.back, currentCard.highlightedWords || []);
         setClozeText(cloze.text);
         setClozeAnswer(cloze.answer);
       }

@@ -6,7 +6,7 @@ import LevelProgress from './LevelProgress';
 const DashboardTab = ({ 
   flashcards, 
   studyLogs, 
-  dueCards, 
+  availableCategories, 
   streakData, 
   onTabChange,
   blurts
@@ -14,7 +14,8 @@ const DashboardTab = ({
   const totalStudyTime = studyLogs.reduce((sum, log) => sum + log.duration, 0);
   const totalStudyHours = Math.round((totalStudyTime / 60) * 10) / 10;
   const averageSessionTime = studyLogs.length > 0 ? Math.round(totalStudyTime / studyLogs.length) : 0;
-  const completionRate = flashcards.length > 0 ? Math.round(((flashcards.length - dueCards.length) / flashcards.length) * 100) : 100;
+  const reviewedCards = flashcards.filter(card => card.reviewCount > 0).length;
+  const completionRate = flashcards.length > 0 ? Math.round((reviewedCards / flashcards.length) * 100) : 100;
 
   return (
     <div className="max-w-7xl mx-auto px-6 space-y-8">
@@ -53,7 +54,7 @@ const DashboardTab = ({
             </div>
             <h3 className="text-xl font-bold text-white mb-2">Flashcards</h3>
             <p className="text-purple-200 mb-4 text-sm">
-              {dueCards.length > 0 ? `🔥 ${dueCards.length} cards due for review` : '✨ All caught up!'}
+              {reviewedCards > 0 ? `📚 ${reviewedCards} cards studied` : '✨ Start studying your cards!'}
             </p>
             <div className="w-full bg-white/10 rounded-full h-2 mb-4">
               <div 
@@ -234,25 +235,6 @@ const DashboardTab = ({
               </div>
             </button>
             
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onTabChange('study');
-              }}
-              className="bg-gradient-to-r from-indigo-500/20 to-purple-600/20 border border-indigo-500/30 p-4 rounded-xl hover:from-indigo-500/30 hover:to-purple-600/30 transition-all duration-300 group"
-              style={{ touchAction: 'manipulation' }}
-            >
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-indigo-500/20 rounded-lg group-hover:bg-indigo-500/30 transition-colors">
-                  <Target size={20} className="text-indigo-400" />
-                </div>
-                <div className="text-left">
-                  <div className="font-bold text-white">Study Mode</div>
-                  <div className="text-xs text-indigo-200">Advanced techniques</div>
-                </div>
-              </div>
-            </button>
             
             <button
               onClick={(e) => {

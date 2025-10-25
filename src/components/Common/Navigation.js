@@ -22,15 +22,6 @@ const Navigation = ({ activeTab, onTabChange }) => {
       description: 'Create & Review Cards'
     },
     { 
-      id: 'study', 
-      label: 'Study', 
-      icon: Target, 
-      color: 'from-indigo-500 to-purple-500', 
-      bgColor: 'from-indigo-500/10 to-purple-500/10',
-      emoji: '🎯',
-      description: 'Advanced Study Modes'
-    },
-    { 
       id: 'pomodoro', 
       label: 'Pomodoro', 
       icon: Clock, 

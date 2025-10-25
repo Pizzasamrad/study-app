@@ -168,3 +168,4 @@ Your study app is **production-ready** and includes:
 
 **Your study app is ready to help you achieve your learning goals! 🎓✨**
 
+

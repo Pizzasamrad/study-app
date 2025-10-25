@@ -134,11 +134,9 @@ const VoiceControl = ({
       
       case 'flashcards':
         if (flashcards.length > 0) {
-          const dueCards = flashcards.filter(card => {
-            const dueDate = new Date(card.nextReviewDate || Date.now());
-            return dueDate <= new Date();
-          });
-          voiceService.speak(`You have ${dueCards.length} cards due for review out of ${flashcards.length} total cards.`);
+          const reviewedCards = flashcards.filter(card => card.reviewCount > 0).length;
+          const categories = [...new Set(flashcards.map(card => card.subject))];
+          voiceService.speak(`You have ${flashcards.length} total cards with ${reviewedCards} studied. You have cards in ${categories.length} subjects: ${categories.join(', ')}.`);
         } else {
           voiceService.speak("You don't have any flashcards yet. Create some to start studying!");
         }

@@ -1,11 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Brain, Plus, Play, Pause, RotateCcw, Save, Edit3, Trash2, Search, Star, Calendar, Trophy, Award, Flame } from 'lucide-react';
 import { auth, onAuthStateChanged } from './firebase';
 import AuthModal from './components/Auth/AuthModal';
 
 import SmartAnalytics from './components/Analytics/SmartAnalytics';
-import AdvancedStudyModes from './components/Study/AdvancedStudyModes';
-import StudyModeSelector from './components/Study/StudyModeSelector';
 import CustomizationTab from './components/Customization/CustomizationTab';
 import DevTestPanel from './components/DevTools/DevTestPanel';
 import Header from './components/Common/Header';
@@ -35,9 +33,6 @@ const StudyApp = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [storageMode, setStorageModeState] = useState(storageService.STORAGE_MODES.LOCAL);
   
-  // 🚀 NEW: Advanced Study Modes state
-  const [studySession, setStudySession] = useState(null);
-  const [studyMode, setStudyMode] = useState('active-recall');
   
   // Customization state
   const [selectedCustomizations, setSelectedCustomizations] = useState({
@@ -282,44 +277,30 @@ const StudyApp = () => {
     setTimerInitialDuration(0);
   };
 
-  // 🚀 NEW: Spaced Repetition Algorithm
-  const calculateNextReview = (difficulty, currentInterval = 1) => {
-    const easeFactor = {
-      'easy': 2.5,
-      'medium': 2.0,
-      'hard': 1.3
-    }[difficulty] || 2.0;
-    
-    const nextInterval = Math.ceil(currentInterval * easeFactor);
-    const nextReviewDate = new Date();
-    nextReviewDate.setDate(nextReviewDate.getDate() + nextInterval);
-    
-    return {
-      nextReviewDate: nextReviewDate.toISOString(),
-      interval: nextInterval,
-      reviewCount: 1
-    };
+  // 🚀 NEW: Simple Category-based Study System
+  const getCardsByCategory = (category) => {
+    if (category === 'all') {
+      return flashcards;
+    }
+    return flashcards.filter(card => card.subject === category);
   };
 
-  const getDueCards = () => {
-    const now = new Date().toISOString();
-    return flashcards.filter(card => 
-      !card.nextReviewDate || card.nextReviewDate <= now
-    );
+  const getAvailableCategories = () => {
+    const categories = ['all', ...new Set(flashcards.map(card => card.subject))];
+    return categories;
   };
 
   // 🚀 Enhanced Flashcard Management with Celebrations and Cloud Sync
-  const addFlashcard = async (front, back, subject) => {
+  const addFlashcard = async (front, back, subject, highlightedWords = []) => {
     try {
       const newCard = {
         front,
         back,
         subject,
         displayDate: new Date().toLocaleDateString(),
-        difficulty: 'medium',
         reviewCount: 0,
-        interval: 1,
-        nextReviewDate: new Date().toISOString()
+        lastReviewed: null,
+        highlightedWords: highlightedWords || [] // Store words to be blanked out in cloze deletion
       };
       
       const savedCard = await storageService.saveFlashcard(newCard);
@@ -368,14 +349,12 @@ const StudyApp = () => {
     }
   };
 
-  // 🚀 Review flashcard with spaced repetition and celebrations
+  // 🚀 Simple flashcard review with celebrations
   const reviewFlashcard = async (id, difficulty) => {
     const card = flashcards.find(c => c.id === id);
     if (!card) return;
 
-    const reviewData = calculateNextReview(difficulty, card.interval || 1);
     const updates = {
-      ...reviewData,
       difficulty,
       reviewCount: (card.reviewCount || 0) + 1,
       lastReviewed: new Date().toISOString()
@@ -388,7 +367,7 @@ const StudyApp = () => {
     if (newReviewCount === 1) {
       triggerCelebration('first_review', { message: 'First review completed! Your brain is already getting stronger!' });
     } else if (newReviewCount === 10) {
-              triggerCelebration('review_master', { message: '10 reviews on this card - you\'re a memory master!' });
+      triggerCelebration('review_master', { message: '10 reviews on this card - you\'re a memory master!' });
     }
   };
 
@@ -432,36 +411,6 @@ const StudyApp = () => {
     }
   };
 
-  // 🚀 NEW: Advanced Study Session Functions
-  const startStudySession = (mode, type) => {
-    setStudyMode(mode);
-    setStudySession({
-      id: Date.now().toString(),
-      mode,
-      type,
-      startTime: new Date().toISOString(),
-      cards: []
-    });
-  };
-
-  const handleStudySessionComplete = async (sessionData) => {
-    setStudySession(null);
-    
-    // Add study log for the session
-    addStudyLog(
-      `Study Session - ${sessionData.mode}`,
-      Math.round(sessionData.duration / 60),
-      `Completed ${sessionData.total} cards with ${sessionData.correct} correct answers`
-    );
-    
-    // Update user stats
-    try {
-      const updatedStats = await userDataService.updateUserStats(sessionData, devStats);
-      setDevStats(updatedStats);
-    } catch (error) {
-      console.error('Error updating user stats:', error);
-    }
-  };
 
   const handleCustomizationChange = async (type, customizationId) => {
     const newCustomizations = {
@@ -517,7 +466,7 @@ const StudyApp = () => {
     }
   };
 
-  const dueCards = getDueCards();
+  const availableCategories = useMemo(() => getAvailableCategories(), [flashcards]);
 
 
 
@@ -624,7 +573,7 @@ const StudyApp = () => {
           <DashboardTab 
             flashcards={flashcards}
             studyLogs={studyLogs}
-            dueCards={dueCards}
+            availableCategories={availableCategories}
             streakData={{ current: devStats.currentStreak, longest: devStats.longestStreak }}
             onTabChange={setActiveTab}
             blurts={blurts}
@@ -635,7 +584,7 @@ const StudyApp = () => {
                 {activeTab === 'flashcards' && (
           <FlashcardsTab
             flashcards={flashcards}
-            dueCards={dueCards}
+            availableCategories={availableCategories}
             onAddFlashcard={addFlashcard}
             onUpdateFlashcard={updateFlashcard}
             onDeleteFlashcard={deleteFlashcard}
@@ -657,25 +606,6 @@ const StudyApp = () => {
           />
         )}
 
-        {/* Study Tab */}
-        {activeTab === 'study' && (
-          <div className="space-y-6">
-            <StudyModeSelector 
-              onModeSelect={setStudyMode}
-              onStartSession={startStudySession}
-              flashcards={flashcards}
-            />
-            {studySession && (
-              <AdvancedStudyModes
-                flashcards={flashcards}
-                onReviewFlashcard={reviewFlashcard}
-                onCompleteSession={handleStudySessionComplete}
-                studyMode={studyMode}
-                user={user}
-              />
-            )}
-          </div>
-        )}
 
         {/* Analytics Tab */}
         {activeTab === 'analytics' && (
@@ -745,19 +675,46 @@ const StudyApp = () => {
   );
 };
 
-// 🚀 ENHANCED: Flashcards Component with Editing and Spaced Repetition
-const FlashcardsTab = ({ flashcards, dueCards, onAddFlashcard, onUpdateFlashcard, onDeleteFlashcard, onReviewFlashcard }) => {
+// 🚀 ENHANCED: Flashcards Component with Category-based Study
+const FlashcardsTab = ({ flashcards, availableCategories, onAddFlashcard, onUpdateFlashcard, onDeleteFlashcard, onReviewFlashcard }) => {
   const [showForm, setShowForm] = useState(false);
   const [editingCard, setEditingCard] = useState(null);
   const [front, setFront] = useState('');
   const [back, setBack] = useState('');
   const [subject, setSubject] = useState('');
-  const [reviewMode, setReviewMode] = useState(false);
+  const [studyMode, setStudyMode] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [currentCard, setCurrentCard] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
   const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('all');
+  const [highlightedWords, setHighlightedWords] = useState([]);
+  const [showHighlighting, setShowHighlighting] = useState(false);
+  const [currentStudyMode, setCurrentStudyMode] = useState('flashcard'); // Default to flashcard review
+  const [userAnswer, setUserAnswer] = useState('');
+  const [clozeText, setClozeText] = useState('');
+  const [clozeAnswer, setClozeAnswer] = useState('');
+
+  // Get cards for the selected category
+  const getCardsForCategory = (category) => {
+    if (category === 'all') {
+      return flashcards;
+    }
+    return flashcards.filter(card => card.subject === category);
+  };
+
+  const studyCards = getCardsForCategory(selectedCategory);
+
+  // Regenerate cloze text when card changes in cloze mode
+  useEffect(() => {
+    if (currentStudyMode === 'cloze' && studyCards.length > 0 && currentCard < studyCards.length) {
+      const card = studyCards[currentCard];
+      const cloze = generateClozeDeletion(card.back, card.highlightedWords || [], card.id);
+      setClozeText(cloze.text);
+      setClozeAnswer(cloze.answer);
+    }
+  }, [currentCard, currentStudyMode, studyCards]);
 
   // Get unique subjects
   const subjects = ['all', ...new Set(flashcards.map(card => card.subject))];
@@ -770,18 +727,38 @@ const FlashcardsTab = ({ flashcards, dueCards, onAddFlashcard, onUpdateFlashcard
     return matchesSearch && matchesSubject;
   });
 
+  const handleWordClick = (word) => {
+    const cleanWord = word.toLowerCase().replace(/[^\w]/g, '');
+    if (cleanWord.length < 2) return; // Don't highlight very short words
+    
+    setHighlightedWords(prev => {
+      if (prev.includes(cleanWord)) {
+        return prev.filter(w => w !== cleanWord);
+      } else {
+        return [...prev, cleanWord];
+      }
+    });
+  };
+
   const handleSubmit = async () => {
     if (front.trim() && back.trim()) {
       setSaving(true);
       if (editingCard) {
-        await onUpdateFlashcard(editingCard.id, { front, back, subject: subject || 'General' });
+        await onUpdateFlashcard(editingCard.id, { 
+          front, 
+          back, 
+          subject: subject || 'General',
+          highlightedWords 
+        });
         setEditingCard(null);
       } else {
-        await onAddFlashcard(front, back, subject || 'General');
+        await onAddFlashcard(front, back, subject || 'General', highlightedWords);
       }
       setFront('');
       setBack('');
       setSubject('');
+      setHighlightedWords([]);
+      setShowHighlighting(false);
       setShowForm(false);
       setSaving(false);
     }
@@ -805,104 +782,417 @@ const FlashcardsTab = ({ flashcards, dueCards, onAddFlashcard, onUpdateFlashcard
 
   const nextCard = () => {
     setShowAnswer(false);
-    setCurrentCard((prev) => (prev + 1) % dueCards.length);
+    setUserAnswer('');
+    setCurrentCard((prev) => (prev + 1) % studyCards.length);
+    
+    // Regenerate cloze text for new card if in cloze mode
+    if (currentStudyMode === 'cloze') {
+      const newCard = studyCards[(currentCard + 1) % studyCards.length];
+      if (newCard) {
+        const cloze = generateClozeDeletion(newCard.back, newCard.highlightedWords || [], newCard.id);
+        setClozeText(cloze.text);
+        setClozeAnswer(cloze.answer);
+      }
+    }
   };
 
   const prevCard = () => {
     setShowAnswer(false);
-    setCurrentCard((prev) => (prev - 1 + dueCards.length) % dueCards.length);
+    setUserAnswer('');
+    setCurrentCard((prev) => (prev - 1 + studyCards.length) % studyCards.length);
+    
+    // Regenerate cloze text for new card if in cloze mode
+    if (currentStudyMode === 'cloze') {
+      const newCard = studyCards[(currentCard - 1 + studyCards.length) % studyCards.length];
+      if (newCard) {
+        const cloze = generateClozeDeletion(newCard.back, newCard.highlightedWords || [], newCard.id);
+        setClozeText(cloze.text);
+        setClozeAnswer(cloze.answer);
+      }
+    }
   };
 
   const handleReview = async (difficulty) => {
-    const card = dueCards[currentCard];
+    const card = studyCards[currentCard];
     await onReviewFlashcard(card.id, difficulty);
     nextCard();
   };
 
-  if (reviewMode && dueCards.length > 0) {
-    const card = dueCards[currentCard];
+  // Generate cloze deletion using highlighted words
+  const generateClozeDeletion = (text, highlightedWords = [], cardId = null) => {
+    if (!text || text.trim().length === 0) {
+      return { text: 'No content available', answer: '' };
+    }
+    
+    // If no highlighted words, fall back to simple cloze generation
+    if (!highlightedWords || highlightedWords.length === 0) {
+      const words = text.split(' ');
+      const keyWords = words.filter(word => 
+        word.length > 4 && !['the', 'and', 'for', 'with', 'this', 'that'].includes(word.toLowerCase())
+      );
+      
+      if (keyWords.length === 0) {
+        return { text: text, answer: 'No cloze available' };
+      }
+      
+      // Use cardId for deterministic selection
+      const seed = cardId ? cardId.split('').reduce((a, b) => a + b.charCodeAt(0), 0) : 0;
+      const randomIndex = seed % keyWords.length;
+      const randomWord = keyWords[randomIndex];
+      const clozeText = text.replace(new RegExp(randomWord, 'gi'), '_____');
+      
+      return { text: clozeText, answer: randomWord };
+    }
+    
+    // Use highlighted words for cloze deletion
+    const availableWords = highlightedWords.filter(word => 
+      text.toLowerCase().includes(word.toLowerCase())
+    );
+    
+    if (availableWords.length === 0) {
+      return { text: text, answer: 'No highlighted words found in text' };
+    }
+    
+    // Find all instances of highlighted words in the text with their positions
+    const wordInstances = [];
+    const words = text.split(/(\s+|[.,!?;:])/); // Split by spaces and punctuation
+    
+    words.forEach((word, index) => {
+      const cleanWord = word.toLowerCase().replace(/[^\w]/g, '');
+      if (availableWords.includes(cleanWord) && cleanWord.length > 1) {
+        wordInstances.push({
+          word: word,
+          cleanWord: cleanWord,
+          index: index,
+          originalWord: word
+        });
+      }
+    });
+    
+    if (wordInstances.length === 0) {
+      return { text: text, answer: 'No highlighted words found in text' };
+    }
+    
+    // Use cardId for deterministic selection instead of random
+    const seed = cardId ? cardId.split('').reduce((a, b) => a + b.charCodeAt(0), 0) : 0;
+    const selectedIndex = seed % wordInstances.length;
+    const selectedInstance = wordInstances[selectedIndex];
+    
+    // Replace only the specific instance, not all instances of the word
+    const newWords = [...words];
+    newWords[selectedInstance.index] = '_____';
+    const clozeText = newWords.join('');
+    
+    return { text: clozeText, answer: selectedInstance.originalWord };
+  };
+
+  // Switch study mode and prepare content
+  const switchStudyMode = (mode) => {
+    setCurrentStudyMode(mode);
+    setUserAnswer('');
+    setShowAnswer(false);
+    
+    if (mode === 'cloze' && studyCards[currentCard]) {
+      const card = studyCards[currentCard];
+      const cloze = generateClozeDeletion(card.back, card.highlightedWords || [], card.id);
+      setClozeText(cloze.text);
+      setClozeAnswer(cloze.answer);
+    }
+  };
+
+  // Check answer for cloze deletion
+  const checkClozeAnswer = () => {
+    if (!userAnswer.trim()) return;
+    
+    const isCorrect = userAnswer.toLowerCase().trim() === clozeAnswer.toLowerCase().trim();
+    if (isCorrect) {
+      // Show success feedback before moving to next card
+      setShowAnswer(true);
+      // Auto-advance after a short delay to show the success message
+      setTimeout(() => {
+        handleReview('easy');
+      }, 1500);
+    } else {
+      setShowAnswer(true);
+    }
+  };
+
+  if (studyMode && studyCards.length > 0) {
+    const card = studyCards[currentCard];
     
     return (
-      <div className="max-w-4xl mx-auto space-y-8">
-        <div className="bg-gradient-to-br from-indigo-500/20 to-purple-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-6 shadow-2xl">
-          <div className="flex justify-between items-center">
+      <div className="fixed inset-0 bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 z-50 flex flex-col">
+        {/* Header */}
+        <div className="absolute top-0 left-0 right-0 bg-black/20 backdrop-blur-xl border-b border-white/10 p-6">
+          <div className="max-w-6xl mx-auto flex justify-between items-center">
             <button
               onClick={() => {
-                setReviewMode(false);
+                setStudyMode(false);
                 setCurrentCard(0);
+                setShowAnswer(false);
+                setCurrentStudyMode('flashcard');
+                setUserAnswer('');
               }}
-              className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-6 py-3 rounded-2xl hover:from-gray-600 hover:to-gray-700 transition-all duration-300 font-bold shadow-lg hover:shadow-gray-500/50 transform hover:scale-105 flex items-center"
+              className="bg-gradient-to-r from-gray-500/80 to-gray-600/80 backdrop-blur-sm text-white px-6 py-3 rounded-2xl hover:from-gray-600/90 hover:to-gray-700/90 transition-all duration-300 font-bold shadow-lg hover:shadow-gray-500/50 transform hover:scale-105 flex items-center"
             >
-              ← 🏠 Back to Cards
+              ← 🏠 Exit Study
             </button>
-            <span className="text-white font-bold text-lg">
-              {currentCard + 1} of {dueCards.length} (Due for Review)
-            </span>
+            <div className="text-center">
+              <div className="text-white font-bold text-xl">
+                {currentCard + 1} of {studyCards.length}
+              </div>
+              <div className="text-white/80 text-sm">
+                {selectedCategory === 'all' ? 'All Cards' : selectedCategory}
+              </div>
+            </div>
+            
+            {/* Study Mode Switcher */}
+            <div className="flex space-x-2">
+              {[
+                { id: 'flashcard', name: 'Review', icon: '📚' },
+                { id: 'cloze', name: 'Cloze', icon: '✏️' },
+                { id: 'concept', name: 'Explain', icon: '💡' }
+              ].map(mode => (
+                <button
+                  key={mode.id}
+                  onClick={() => switchStudyMode(mode.id)}
+                  className={`px-4 py-2 rounded-xl font-bold text-sm transition-all duration-300 ${
+                    currentStudyMode === mode.id
+                      ? 'bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-lg'
+                      : 'bg-white/10 backdrop-blur-sm text-white/80 hover:bg-white/20'
+                  }`}
+                >
+                  <span className="mr-1">{mode.icon}</span>
+                  {mode.name}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-blue-500/20 to-cyan-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-12 min-h-96 flex flex-col justify-center items-center text-center shadow-2xl">
-          <div className="mb-6 flex flex-wrap items-center justify-center gap-3">
-            <span className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-4 py-2 rounded-full font-bold">
-              {card.subject}
-            </span>
-                          {card.reviewCount > 0 && (
-                <span className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-full font-bold">
-                  Reviewed {card.reviewCount} times
-                </span>
-              )}
-          </div>
-          
-          <div className="text-2xl font-bold text-white mb-8 min-h-24 flex items-center justify-center leading-relaxed max-w-2xl">
-            {showAnswer ? card.back : card.front}
-          </div>
+        {/* Main Study Area */}
+        <div className="flex-1 flex items-center justify-center pt-20 pb-8 px-6">
+          <div className="max-w-4xl w-full">
+            {/* Progress Bar */}
+            <div className="mb-8">
+              <div className="w-full bg-white/10 rounded-full h-3 mb-4">
+                <div 
+                  className="bg-gradient-to-r from-blue-500 to-cyan-600 h-3 rounded-full transition-all duration-500"
+                  style={{ width: `${((currentCard + 1) / studyCards.length) * 100}%` }}
+                ></div>
+              </div>
+            </div>
 
-          {!showAnswer ? (
-            <button
-              onClick={() => setShowAnswer(true)}
-              className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-10 py-4 rounded-2xl hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 font-bold text-lg shadow-lg hover:shadow-blue-500/50 transform hover:scale-105 mb-6"
-            >
-              Show Answer
-            </button>
-          ) : (
-            <div className="space-y-6">
-              <p className="text-white/80 mb-6 text-lg font-medium">How well did you remember this?</p>
-              <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            {/* Card */}
+            <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl rounded-3xl border border-white/20 p-12 min-h-96 flex flex-col justify-center items-center text-center shadow-2xl relative overflow-hidden">
+              {/* Background Pattern */}
+              <div className="absolute inset-0 opacity-5">
+                <div className="absolute top-4 left-4 w-32 h-32 bg-blue-400 rounded-full blur-3xl"></div>
+                <div className="absolute bottom-4 right-4 w-24 h-24 bg-purple-400 rounded-full blur-3xl"></div>
+              </div>
+              
+              {/* Subject Tags */}
+              <div className="mb-8 flex flex-wrap items-center justify-center gap-3 relative z-10">
+                <span className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-4 py-2 rounded-full font-bold">
+                  {card.subject}
+                </span>
+                {card.reviewCount > 0 && (
+                  <span className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-full font-bold">
+                    Reviewed {card.reviewCount} times
+                  </span>
+                )}
+              </div>
+              
+              {/* Study Mode Content */}
+              {currentStudyMode === 'flashcard' && (
+                <>
+                  {/* Card Content */}
+                  <div className="text-3xl font-bold text-white mb-12 min-h-32 flex items-center justify-center leading-relaxed max-w-3xl relative z-10">
+                    {showAnswer ? card.back : card.front}
+                  </div>
+
+                  {/* Action Buttons */}
+                  {!showAnswer ? (
+                    <button
+                      onClick={() => setShowAnswer(true)}
+                      className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-12 py-6 rounded-2xl hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 font-bold text-xl shadow-2xl hover:shadow-blue-500/50 transform hover:scale-105 relative z-10"
+                    >
+                      Show Answer
+                    </button>
+                  ) : (
+                    <div className="space-y-8 relative z-10">
+                      <p className="text-white/90 mb-8 text-xl font-medium">How well did you remember this?</p>
+                      <div className="flex flex-col sm:flex-row gap-6 mb-8">
+                        <button 
+                          onClick={() => handleReview('hard')}
+                          className="bg-gradient-to-r from-red-500 to-pink-600 text-white px-10 py-6 rounded-2xl hover:from-red-600 hover:to-pink-700 transition-all duration-300 font-bold text-lg shadow-2xl hover:shadow-red-500/50 transform hover:scale-105"
+                        >
+                          😰 Hard
+                        </button>
+                        <button 
+                          onClick={() => handleReview('medium')}
+                          className="bg-gradient-to-r from-yellow-500 to-orange-600 text-white px-10 py-6 rounded-2xl hover:from-yellow-600 hover:to-orange-700 transition-all duration-300 font-bold text-lg shadow-2xl hover:shadow-yellow-500/50 transform hover:scale-105"
+                        >
+                          😐 Medium
+                        </button>
+                        <button 
+                          onClick={() => handleReview('easy')}
+                          className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-10 py-6 rounded-2xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 font-bold text-lg shadow-2xl hover:shadow-green-500/50 transform hover:scale-105"
+                        >
+                          😊 Easy
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {currentStudyMode === 'cloze' && (
+                <>
+                  {/* Cloze Deletion Content */}
+                  <div className="text-3xl font-bold text-white mb-8 min-h-32 flex items-center justify-center leading-relaxed max-w-3xl relative z-10">
+                    {clozeText || card.back}
+                  </div>
+                  
+                  {/* Cloze Deletion Info */}
+                  <div className="bg-blue-500/20 border border-blue-400/30 rounded-lg p-4 mb-6 max-w-2xl mx-auto">
+                    <div className="text-blue-200 text-sm font-medium mb-1">💡 Cloze Deletion Tip:</div>
+                    <div className="text-blue-100 text-xs">
+                      This card has {card.highlightedWords?.length || 0} highlighted words. 
+                      One word is randomly selected to be blanked out each time you study this card.
+                    </div>
+                  </div>
+
+                  {!showAnswer ? (
+                    <div className="space-y-6 relative z-10">
+                      <div className="max-w-2xl mx-auto">
+                        <input
+                          type="text"
+                          value={userAnswer}
+                          onChange={(e) => setUserAnswer(e.target.value)}
+                          placeholder="Fill in the blank..."
+                          className="w-full p-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent font-medium text-xl text-center"
+                          onKeyPress={(e) => e.key === 'Enter' && checkClozeAnswer()}
+                        />
+                      </div>
+                      <button
+                        onClick={checkClozeAnswer}
+                        className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-12 py-4 rounded-2xl hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 font-bold text-lg shadow-2xl hover:shadow-blue-500/50 transform hover:scale-105"
+                      >
+                        Check Answer
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-8 relative z-10">
+                      {userAnswer.toLowerCase().trim() === clozeAnswer.toLowerCase().trim() ? (
+                        <div className="text-center">
+                          <div className="text-6xl mb-4">🎉</div>
+                          <div className="text-3xl font-bold text-green-400 mb-2">Correct!</div>
+                          <div className="text-xl text-white/80">Great job! You got it right!</div>
+                        </div>
+                      ) : (
+                        <div className="text-center">
+                          <div className="text-6xl mb-4">💭</div>
+                          <div className="text-3xl font-bold text-red-400 mb-2">Not quite right</div>
+                          <div className="text-xl text-white/80 mb-4">Your answer: <span className="text-red-300">{userAnswer}</span></div>
+                          <div className="text-xl text-white/80">Correct answer: <span className="text-yellow-400 font-bold">{clozeAnswer}</span></div>
+                        </div>
+                      )}
+                      <div className="flex flex-col sm:flex-row gap-6 mb-8">
+                        <button 
+                          onClick={() => handleReview('hard')}
+                          className="bg-gradient-to-r from-red-500 to-pink-600 text-white px-10 py-6 rounded-2xl hover:from-red-600 hover:to-pink-700 transition-all duration-300 font-bold text-lg shadow-2xl hover:shadow-red-500/50 transform hover:scale-105"
+                        >
+                          😰 Hard
+                        </button>
+                        <button 
+                          onClick={() => handleReview('medium')}
+                          className="bg-gradient-to-r from-yellow-500 to-orange-600 text-white px-10 py-6 rounded-2xl hover:from-yellow-600 hover:to-orange-700 transition-all duration-300 font-bold text-lg shadow-2xl hover:shadow-yellow-500/50 transform hover:scale-105"
+                        >
+                          😐 Medium
+                        </button>
+                        <button 
+                          onClick={() => handleReview('easy')}
+                          className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-10 py-6 rounded-2xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 font-bold text-lg shadow-2xl hover:shadow-green-500/50 transform hover:scale-105"
+                        >
+                          😊 Easy
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {currentStudyMode === 'concept' && (
+                <>
+                  {/* Concept Explanation Content */}
+                  <div className="text-3xl font-bold text-white mb-8 min-h-32 flex items-center justify-center leading-relaxed max-w-3xl relative z-10">
+                    {card.front}
+                  </div>
+
+                  <div className="space-y-6 relative z-10">
+                    <div className="max-w-2xl mx-auto">
+                      <textarea
+                        value={userAnswer}
+                        onChange={(e) => setUserAnswer(e.target.value)}
+                        placeholder="Explain why this answer is correct..."
+                        className="w-full p-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent font-medium text-lg resize-none"
+                        rows="4"
+                      />
+                    </div>
+                    <button
+                      onClick={() => setShowAnswer(true)}
+                      className="bg-gradient-to-r from-purple-500 to-pink-600 text-white px-12 py-4 rounded-2xl hover:from-purple-600 hover:to-pink-700 transition-all duration-300 font-bold text-lg shadow-2xl hover:shadow-purple-500/50 transform hover:scale-105"
+                    >
+                      Show Answer
+                    </button>
+                  </div>
+
+                  {showAnswer && (
+                    <div className="space-y-8 relative z-10 mt-8">
+                      <div className="text-2xl font-bold text-white mb-4">Correct Answer:</div>
+                      <div className="text-xl text-white/90 mb-8">{card.back}</div>
+                      <div className="flex flex-col sm:flex-row gap-6 mb-8">
+                        <button 
+                          onClick={() => handleReview('hard')}
+                          className="bg-gradient-to-r from-red-500 to-pink-600 text-white px-10 py-6 rounded-2xl hover:from-red-600 hover:to-pink-700 transition-all duration-300 font-bold text-lg shadow-2xl hover:shadow-red-500/50 transform hover:scale-105"
+                        >
+                          😰 Hard
+                        </button>
+                        <button 
+                          onClick={() => handleReview('medium')}
+                          className="bg-gradient-to-r from-yellow-500 to-orange-600 text-white px-10 py-6 rounded-2xl hover:from-yellow-600 hover:to-orange-700 transition-all duration-300 font-bold text-lg shadow-2xl hover:shadow-yellow-500/50 transform hover:scale-105"
+                        >
+                          😐 Medium
+                        </button>
+                        <button 
+                          onClick={() => handleReview('easy')}
+                          className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-10 py-6 rounded-2xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 font-bold text-lg shadow-2xl hover:shadow-green-500/50 transform hover:scale-105"
+                        >
+                          😊 Easy
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Navigation */}
+              <div className="flex flex-col sm:flex-row gap-4 mt-12 relative z-10">
                 <button 
-                  onClick={() => handleReview('hard')}
-                  className="bg-gradient-to-r from-red-500 to-pink-600 text-white px-8 py-4 rounded-2xl hover:from-red-600 hover:to-pink-700 transition-all duration-300 font-bold shadow-lg hover:shadow-red-500/50 transform hover:scale-105"
+                  onClick={prevCard} 
+                  className="bg-gradient-to-r from-gray-500/80 to-gray-600/80 backdrop-blur-sm text-white px-8 py-4 rounded-2xl hover:from-gray-600/90 hover:to-gray-700/90 transition-all duration-300 font-bold shadow-lg hover:shadow-gray-500/50 transform hover:scale-105"
                 >
-                                      Hard
+                  ← Previous
                 </button>
                 <button 
-                  onClick={() => handleReview('medium')}
-                  className="bg-gradient-to-r from-yellow-500 to-orange-600 text-white px-8 py-4 rounded-2xl hover:from-yellow-600 hover:to-orange-700 transition-all duration-300 font-bold shadow-lg hover:shadow-yellow-500/50 transform hover:scale-105"
+                  onClick={nextCard} 
+                  className="bg-gradient-to-r from-gray-500/80 to-gray-600/80 backdrop-blur-sm text-white px-8 py-4 rounded-2xl hover:from-gray-600/90 hover:to-gray-700/90 transition-all duration-300 font-bold shadow-lg hover:shadow-gray-500/50 transform hover:scale-105"
                 >
-                                      Medium
-                </button>
-                <button 
-                  onClick={() => handleReview('easy')}
-                  className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-8 py-4 rounded-2xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 font-bold shadow-lg hover:shadow-green-500/50 transform hover:scale-105"
-                >
-                                      Easy
+                  Next →
                 </button>
               </div>
             </div>
-          )}
-
-          <div className="flex flex-col sm:flex-row gap-4 mt-8">
-            <button 
-              onClick={prevCard} 
-              className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-8 py-3 rounded-2xl hover:from-gray-600 hover:to-gray-700 transition-all duration-300 font-bold shadow-lg hover:shadow-gray-500/50 transform hover:scale-105"
-            >
-              Previous
-            </button>
-            <button 
-              onClick={nextCard} 
-              className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-8 py-3 rounded-2xl hover:from-gray-600 hover:to-gray-700 transition-all duration-300 font-bold shadow-lg hover:shadow-gray-500/50 transform hover:scale-105"
-            >
-              Next
-            </button>
           </div>
         </div>
       </div>
@@ -918,30 +1208,38 @@ const FlashcardsTab = ({ flashcards, dueCards, onAddFlashcard, onUpdateFlashcard
             <h2 className="text-4xl font-black text-white mb-2 flex items-center">
               Flashcards
             </h2>
-            <p className="text-white/80 text-lg">Master your knowledge with spaced repetition</p>
+            <p className="text-white/80 text-lg">Organize cards by subject and study them by category</p>
           </div>
           
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-4">
-            {dueCards.length > 0 && (
-              <button
-                onClick={() => {
-                  setReviewMode(true);
-                  setCurrentCard(0);
-                }}
-                className="bg-gradient-to-r from-red-500 to-pink-600 text-white px-6 py-3 rounded-2xl hover:from-red-600 hover:to-pink-700 transition-all duration-300 font-bold shadow-lg hover:shadow-red-500/50 transform hover:scale-105 flex items-center"
-              >
-                <Calendar className="mr-2" size={20} />
-                Review Due ({dueCards.length})
-              </button>
-            )}
+            {/* Category Study Buttons */}
+            {availableCategories.map(category => {
+              const categoryCards = getCardsForCategory(category);
+              if (categoryCards.length === 0) return null;
+              
+              return (
+                <button
+                  key={category}
+                  onClick={() => {
+                    setSelectedCategory(category);
+                    setStudyMode(true);
+                    setCurrentCard(0);
+                  }}
+                  className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3 rounded-2xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 font-bold shadow-lg hover:shadow-green-500/50 transform hover:scale-105 flex items-center"
+                >
+                  <Brain className="mr-2" size={20} />
+                  Study {category === 'all' ? 'All' : category} ({categoryCards.length})
+                </button>
+              );
+            })}
 
             <button
               onClick={() => setShowForm(true)}
               className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-6 py-3 rounded-2xl hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 font-bold shadow-lg hover:shadow-blue-500/50 transform hover:scale-105 flex items-center"
             >
               <Plus className="mr-2" size={20} />
-                              Add Card
+              Add Card
             </button>
           </div>
         </div>
@@ -1003,6 +1301,79 @@ const FlashcardsTab = ({ flashcards, dueCards, onAddFlashcard, onUpdateFlashcard
               />
             </div>
           </div>
+
+          {/* Word Highlighting Feature */}
+          {back.trim() && (
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <label className="block text-white font-bold text-lg">Highlight Key Words for Cloze Deletion</label>
+                <button
+                  type="button"
+                  onClick={() => setShowHighlighting(!showHighlighting)}
+                  className="bg-gradient-to-r from-purple-500 to-pink-600 text-white px-4 py-2 rounded-xl hover:from-purple-600 hover:to-pink-700 transition-all duration-300 font-bold text-sm"
+                >
+                  {showHighlighting ? 'Hide Highlighting' : 'Show Highlighting'}
+                </button>
+              </div>
+              
+              {showHighlighting && (
+                <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/20 p-6">
+                  <p className="text-white/80 mb-4 text-sm">
+                    Click on important words in your answer that should be blanked out during cloze deletion study mode.
+                  </p>
+                  
+                  <div className="bg-blue-500/20 border border-blue-400/30 rounded-lg p-4 mb-4">
+                    <div className="text-blue-200 text-sm font-medium mb-2">📝 How Cloze Deletion Works:</div>
+                    <div className="text-blue-100 text-xs space-y-1">
+                      <div>• Highlight multiple words to give cloze deletion more options</div>
+                      <div>• Each study session will randomly pick ONE highlighted word to blank out</div>
+                      <div>• This keeps the exercise focused while giving variety across sessions</div>
+                      <div>• Perfect for learning key terms, dates, names, or important concepts!</div>
+                    </div>
+                  </div>
+                  
+                  <div className="mb-4">
+                    <div className="text-white font-medium mb-2">Your Answer:</div>
+                    <div className="bg-white/10 rounded-xl p-4 border border-white/20">
+                      {back.split(' ').map((word, index) => {
+                        const cleanWord = word.toLowerCase().replace(/[^\w]/g, '');
+                        const isHighlighted = highlightedWords.includes(cleanWord);
+                        return (
+                          <span
+                            key={index}
+                            onClick={() => handleWordClick(word)}
+                            className={`cursor-pointer inline-block mr-2 mb-1 px-2 py-1 rounded transition-all duration-200 ${
+                              isHighlighted 
+                                ? 'bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-bold' 
+                                : 'hover:bg-white/20 text-white'
+                            }`}
+                          >
+                            {word}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  
+                  {highlightedWords.length > 0 && (
+                    <div className="bg-gradient-to-r from-yellow-500/20 to-orange-600/20 rounded-xl p-4 border border-yellow-500/30">
+                      <div className="text-white font-bold mb-2">Selected Words ({highlightedWords.length}):</div>
+                      <div className="flex flex-wrap gap-2">
+                        {highlightedWords.map((word, index) => (
+                          <span
+                            key={index}
+                            className="bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-3 py-1 rounded-full font-bold text-sm"
+                          >
+                            {word}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
           <div className="mb-6">
                           <label className="block text-white font-bold mb-3 text-lg">Subject</label>
             <input
@@ -1033,25 +1404,19 @@ const FlashcardsTab = ({ flashcards, dueCards, onAddFlashcard, onUpdateFlashcard
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredCards.map(card => {
-          const isDue = card.nextReviewDate && card.nextReviewDate <= new Date().toISOString();
           return (
-            <div key={card.id} className={`${isDue ? 'bg-gradient-to-br from-red-500/20 to-pink-600/20' : 'bg-gradient-to-br from-purple-500/20 to-indigo-600/20'} backdrop-blur-xl rounded-3xl border-purple-500/30 p-6 shadow-2xl hover:shadow-${isDue ? 'red' : 'indigo'}-500/25 transition-all duration-300 transform hover:-translate-y-1 hover:scale-105 group animate-bounce-in relative overflow-hidden`}>
+            <div key={card.id} className="bg-gradient-to-br from-purple-500/20 to-indigo-600/20 backdrop-blur-xl rounded-3xl border-purple-500/30 p-6 shadow-2xl hover:shadow-indigo-500/25 transition-all duration-300 transform hover:-translate-y-1 hover:scale-105 group animate-bounce-in relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
               <div className="flex justify-between items-start mb-4 relative z-10">
                 <div className="flex flex-wrap gap-2">
                   <span className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-3 py-1 rounded-full text-sm font-bold">
                     {card.subject}
                   </span>
-                                      {isDue && (
-                      <span className="bg-gradient-to-r from-red-500 to-pink-600 text-white px-3 py-1 rounded-full text-sm font-bold animate-pulse">
-                        Due
-                      </span>
-                    )}
-                                      {card.reviewCount > 0 && (
-                      <span className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-1 rounded-full text-sm font-bold">
-                        {card.reviewCount} reviews
-                      </span>
-                    )}
+                  {card.reviewCount > 0 && (
+                    <span className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-1 rounded-full text-sm font-bold">
+                      {card.reviewCount} reviews
+                    </span>
+                  )}
                 </div>
                 <div className="flex space-x-2">
                   <button
@@ -1078,8 +1443,8 @@ const FlashcardsTab = ({ flashcards, dueCards, onAddFlashcard, onUpdateFlashcard
               </div>
               <div className="flex justify-between items-center text-sm text-white/60 border-t border-white/10 pt-4 relative z-10">
                 <span>Created: {card.displayDate}</span>
-                {card.nextReviewDate && (
-                  <span>Next: {new Date(card.nextReviewDate).toLocaleDateString()}</span>
+                {card.lastReviewed && (
+                  <span>Last studied: {new Date(card.lastReviewed).toLocaleDateString()}</span>
                 )}
               </div>
             </div>
