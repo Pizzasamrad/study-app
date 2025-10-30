@@ -1,5 +1,5 @@
 import React from 'react';
-import { Brain, Target, Clock, BarChart3, Edit3, Home, Palette } from 'lucide-react';
+import { Brain, Clock, BarChart3, Edit3, Home, Palette } from 'lucide-react';
 
 const Navigation = ({ activeTab, onTabChange }) => {
   const tabs = [
@@ -16,8 +16,8 @@ const Navigation = ({ activeTab, onTabChange }) => {
       id: 'flashcards', 
       label: 'Flashcards', 
       icon: Brain, 
-      color: 'from-purple-500 to-indigo-500', 
-      bgColor: 'from-purple-500/10 to-indigo-500/10',
+      color: 'from-amber-600 to-orange-700', 
+      bgColor: 'from-amber-600/10 to-orange-700/10',
       emoji: '🧠',
       description: 'Create & Review Cards'
     },
@@ -34,8 +34,8 @@ const Navigation = ({ activeTab, onTabChange }) => {
       id: 'analytics', 
       label: 'Analytics', 
       icon: BarChart3, 
-      color: 'from-blue-500 to-cyan-500', 
-      bgColor: 'from-blue-500/10 to-cyan-500/10',
+      color: 'from-amber-600 to-orange-700', 
+      bgColor: 'from-amber-600/10 to-orange-700/10',
       emoji: '📊',
       description: 'Progress & Insights'
     },
@@ -73,16 +73,20 @@ const Navigation = ({ activeTab, onTabChange }) => {
             <button
               key={id}
               onClick={(e) => handleTabClick(e, id)}
-              className={`group relative p-4 rounded-xl transition-all duration-300 font-medium text-left min-h-[120px] w-full ${
+              className={`group relative p-4 rounded-lg transition-all duration-300 font-mono font-bold text-left min-h-[120px] w-full border-2 ${
                 activeTab === id 
-                  ? `bg-gradient-to-r ${color} text-white shadow-2xl transform scale-105` 
-                  : `bg-gradient-to-r ${bgColor} text-white/80 hover:text-white hover:scale-105 hover:shadow-xl`
+                  ? `bg-gradient-to-r ${color} text-white shadow-2xl transform scale-105 border-amber-400/50 shadow-amber-500/25` 
+                  : `bg-gradient-to-r ${bgColor} text-white/80 hover:text-white hover:scale-105 hover:shadow-xl border-amber-400/20 hover:border-amber-400/50`
               }`}
               style={{ touchAction: 'manipulation' }}
             >
               {/* Active indicator */}
               {activeTab === id && (
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full shadow-lg animate-pulse"></div>
+                <>
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-amber-400 rounded-full shadow-lg animate-pulse"></div>
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-amber-400 rounded-full animate-ping"></div>
+                  <div className="absolute inset-0 border-2 border-amber-400/30 rounded-lg animate-pulse"></div>
+                </>
               )}
               
               {/* Icon */}

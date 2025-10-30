@@ -6,5 +6,7 @@ export const FEATURES = {
   STUDY_LOGGING: true,
   BRAIN_BLURTS: true,
   CELEBRATIONS: true,
+  // Disable popups for flashcard create/review
+  FLASHCARD_CELEBRATIONS: false,
   MANUAL_FLASHCARDS: true
 };

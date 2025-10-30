@@ -102,69 +102,77 @@ export const CUSTOMIZATION_CONFIG = {
   BACKGROUNDS: {
     default: {
       id: 'default',
-      name: 'Classic Purple',
-      gradient: 'from-purple-900 via-indigo-900 to-purple-900',
+      name: 'Ancient Crypt',
+      gradient: 'from-slate-900 via-gray-900 to-black',
+      backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.15'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
       unlocked: true,
       level: 1,
-      description: 'Elegant and professional'
+      description: 'Dark stone walls and flickering torches'
     },
     level3: {
       id: 'level3',
-      name: 'Ocean Depths',
+      name: 'Crystal Caverns',
       gradient: 'from-blue-900 via-cyan-500 to-teal-900',
+      backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.2'%3E%3Cpath d='M0 0h20v20H0zM20 20h20v20H20z'/%3E%3Cpath d='M20 0h20v20H20zM0 20h20v20H0z'/%3E%3C/g%3E%3C/svg%3E")`,
       unlocked: false,
       level: 3,
-      description: 'Deep and calming'
+      description: 'Glowing blue crystals in underground chambers'
     },
     level5: {
       id: 'level5',
-      name: 'Forest Wisdom',
+      name: 'Forest Temple',
       gradient: 'from-green-800 via-emerald-600 to-green-900',
+      backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.08'%3E%3Cpath d='M30 0l15 15v30H15V15L30 0z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
       unlocked: false,
       level: 5,
-      description: 'Natural and peaceful'
+      description: 'Ancient ruins overgrown with mystical vines'
     },
     level7: {
       id: 'level7',
-      name: 'Sunset Glow',
+      name: 'Volcanic Forge',
       gradient: 'from-orange-600 via-red-500 to-pink-600',
+      backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Cpath d='M20 0c11.046 0 20 8.954 20 20s-8.954 20-20 20S0 31.046 0 20 8.954 0 20 0zm0 2C10.06 2 2 10.06 2 20s8.06 18 18 18 18-8.06 18-18S29.94 2 20 2z'/%3E%3C/g%3E%3C/svg%3E")`,
       unlocked: false,
       level: 7,
-      description: 'Warm and inspiring'
+      description: 'Molten lava pools and blacksmith\'s anvils'
     },
     level10: {
       id: 'level10',
-      name: 'Galaxy Explorer',
+      name: 'Shadow Realm',
       gradient: 'from-indigo-800 via-purple-600 to-pink-500',
+      backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.06'%3E%3Cpath d='M30 0l30 30-30 30L0 30z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
       unlocked: false,
       level: 10,
-      description: 'Cosmic and mysterious'
+      description: 'Ethereal shadows dance in the darkness'
     },
     level15: {
       id: 'level15',
-      name: 'Golden Age',
+      name: 'Dragon\'s Lair',
       gradient: 'from-yellow-600 via-orange-500 to-red-600',
+      backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Cpath d='M20 0c11.046 0 20 8.954 20 20s-8.954 20-20 20S0 31.046 0 20 8.954 0 20 0zm0 2C10.06 2 2 10.06 2 20s8.06 18 18 18 18-8.06 18-18S29.94 2 20 2z'/%3E%3C/g%3E%3C/svg%3E")`,
       unlocked: false,
       level: 15,
-      description: 'Legendary and prestigious'
+      description: 'Massive hoard of gold and ancient artifacts'
     },
     streak7: {
-      id: 'streak7_bg',
-      name: 'Flame Theme',
+      id: 'streak7',
+      name: 'Fire Temple',
       gradient: 'from-red-800 via-orange-600 to-yellow-500',
+      backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.08'%3E%3Cpath d='M30 0l15 15v30H15V15L30 0z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
       unlocked: false,
       level: 0,
       requirement: 'streak7',
-      description: 'Burning with determination'
+      description: 'Sacred flames burn eternally'
     },
-    perfectSession: {
-      id: 'perfectSession',
-      name: 'Perfect Score',
-      gradient: 'from-green-700 via-emerald-500 to-teal-600',
+    cards50: {
+      id: 'cards50',
+      name: 'Knowledge Vault',
+      gradient: 'from-purple-800 via-indigo-600 to-blue-500',
+      backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.2'%3E%3Cpath d='M0 0h20v20H0zM20 20h20v20H20z'/%3E%3Cpath d='M10 0h20v20H10zM0 20h20v20H0z'/%3E%3Cpath d='M20 0h20v20H20zM10 20h20v20H10z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
       unlocked: false,
       level: 0,
-      requirement: 'perfectSession',
-      description: '100% accuracy achievement'
+      requirement: 'cards50',
+      description: 'Ancient tomes and magical scrolls'
     }
   },
 
@@ -252,7 +260,10 @@ export const getNextUnlocks = (userLevel, achievements, stats) => {
 export const applyCustomization = (customization, type) => {
   switch (type) {
     case 'background':
-      return `bg-gradient-to-r ${customization.gradient}`;
+      return {
+        className: `bg-gradient-to-r ${customization.gradient}`,
+        style: customization.backgroundImage ? { backgroundImage: customization.backgroundImage } : {}
+      };
     case 'cardTheme':
       return `${customization.bgColor} ${customization.borderColor}`;
     case 'animation':
@@ -262,13 +273,21 @@ export const applyCustomization = (customization, type) => {
   }
 };
 
-// Get background gradient classes
+// Get background gradient classes and image
 export const getBackgroundClasses = (backgroundId) => {
   const background = CUSTOMIZATION_CONFIG.BACKGROUNDS[backgroundId];
+  
   if (!background) {
-    return 'from-purple-900 via-blue-900 to-indigo-900'; // default
+    return {
+      className: 'from-slate-900 via-gray-900 to-black',
+      style: {}
+    };
   }
-  return background.gradient;
+  
+  return {
+    className: background.gradient,
+    style: background.backgroundImage ? { backgroundImage: background.backgroundImage } : {}
+  };
 };
 
 

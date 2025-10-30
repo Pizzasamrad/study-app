@@ -1,6 +1,6 @@
 // userDataService.js
 import * as storageService from './storageService';
-import { calculateLevel, getLevelStats } from './levelService';
+import { calculateLevel } from './levelService';
 
 // Save user progress and stats
 export const saveUserProgress = async (userStats, user = null) => {

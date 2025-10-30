@@ -243,19 +243,19 @@ const AdvancedStudyModes = ({
 
   if (filteredCards.length === 0) {
     return (
-      <div className="bg-gradient-to-br from-blue-500/20 to-cyan-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-8 shadow-2xl text-center">
+      <div className="bg-gradient-to-br from-amber-900/20 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-8 shadow-2xl text-center">
         <div className="text-6xl mb-4">🎉</div>
-        <h3 className="text-2xl font-bold text-white mb-4">No Cards to Study!</h3>
-        <p className="text-blue-200 mb-6">
-          {studyMode === 'review' ? 'All cards are up to date!' : 
-           studyMode === 'learn' ? 'No new cards to learn!' : 
-           'No cards available for testing!'}
+        <h3 className="text-2xl font-bold text-amber-400 mb-4 font-mono">NO SCROLLS TO STUDY!</h3>
+        <p className="text-amber-300 mb-6 font-mono">
+          {studyMode === 'review' ? '&gt; ALL SCROLLS ARE UP TO DATE!' : 
+           studyMode === 'learn' ? '&gt; NO NEW SCROLLS TO LEARN!' : 
+           '&gt; NO SCROLLS AVAILABLE FOR TESTING!'}
         </p>
         <button
           onClick={() => window.location.reload()}
-          className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-6 py-3 rounded-2xl font-bold hover:from-blue-600 hover:to-cyan-600 transition-all duration-300"
+          className="bg-gradient-to-r from-amber-600 to-orange-700 text-white px-6 py-3 rounded border-2 border-amber-400/50 font-mono font-bold hover:from-amber-700 hover:to-orange-800 transition-all duration-300"
         >
-          🔄 Refresh
+          🔄 REFRESH
         </button>
       </div>
     );
@@ -267,23 +267,23 @@ const AdvancedStudyModes = ({
     const seconds = timer % 60;
 
     return (
-      <div className="bg-gradient-to-br from-green-500/20 to-emerald-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-8 shadow-2xl">
+      <div className="bg-gradient-to-br from-amber-900/20 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-8 shadow-2xl">
         <div className="text-center">
           <div className="text-6xl mb-4">🏆</div>
-          <h3 className="text-3xl font-bold text-white mb-6">Session Complete!</h3>
+          <h3 className="text-3xl font-bold text-amber-400 mb-6 font-mono">QUEST COMPLETE!</h3>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-white/10 rounded-2xl p-6">
-              <div className="text-3xl font-black text-white mb-2">{accuracy}%</div>
-              <div className="text-green-200 font-bold">Accuracy</div>
+            <div className="bg-amber-900/20 rounded-lg border-2 border-amber-400/50 p-6">
+              <div className="text-3xl font-black text-amber-400 mb-2 font-mono">{accuracy}%</div>
+              <div className="text-amber-300 font-mono font-bold">ACCURACY</div>
             </div>
-            <div className="bg-white/10 rounded-2xl p-6">
-              <div className="text-3xl font-black text-white mb-2">{sessionStats.maxStreak}</div>
-              <div className="text-blue-200 font-bold">Best Streak</div>
+            <div className="bg-amber-900/20 rounded-lg border-2 border-amber-400/50 p-6">
+              <div className="text-3xl font-black text-amber-400 mb-2 font-mono">{sessionStats.maxStreak}</div>
+              <div className="text-amber-300 font-mono font-bold">BEST STREAK</div>
             </div>
-            <div className="bg-white/10 rounded-2xl p-6">
-              <div className="text-3xl font-black text-white mb-2">{minutes}:{seconds.toString().padStart(2, '0')}</div>
-              <div className="text-purple-200 font-bold">Time</div>
+            <div className="bg-amber-900/20 rounded-lg border-2 border-amber-400/50 p-6">
+              <div className="text-3xl font-black text-amber-400 mb-2 font-mono">{minutes}:{seconds.toString().padStart(2, '0')}</div>
+              <div className="text-amber-300 font-mono font-bold">TIME</div>
             </div>
           </div>
 
@@ -315,7 +315,7 @@ const AdvancedStudyModes = ({
                   });
                 }
               }}
-              className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-8 py-4 rounded-2xl font-bold hover:from-blue-600 hover:to-cyan-600 transition-all duration-300"
+              className="bg-gradient-to-r from-amber-600 to-orange-700 text-white px-8 py-4 rounded border-2 border-amber-400/50 font-mono font-bold hover:from-amber-700 hover:to-orange-800 transition-all duration-300"
             >
               <BookOpen className="inline mr-2" size={20} />
               Back to Dashboard
@@ -333,10 +333,10 @@ const AdvancedStudyModes = ({
   if (!currentCard) {
     return (
       <div className="max-w-4xl mx-auto space-y-8">
-        <div className="bg-gradient-to-br from-blue-500/20 to-cyan-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-8 shadow-2xl text-center">
+        <div className="bg-gradient-to-br from-amber-900/20 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-8 shadow-2xl text-center">
           <div className="text-6xl mb-4">🔄</div>
-          <h3 className="text-2xl font-bold text-white mb-4">Loading Study Session...</h3>
-          <p className="text-blue-200 mb-6">Preparing your study materials</p>
+          <h3 className="text-2xl font-bold text-amber-400 mb-4 font-mono">LOADING QUEST...</h3>
+          <p className="text-amber-300 mb-6 font-mono">&gt; PREPARING YOUR STUDY MATERIALS</p>
         </div>
       </div>
     );
@@ -369,11 +369,11 @@ const AdvancedStudyModes = ({
             </span>
           </div>
 
-          {/* Flashcard */}
-          <div className="bg-gradient-to-br from-blue-500/20 to-cyan-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-12 min-h-96 flex flex-col justify-center items-center text-center shadow-2xl">
+          {/* Dungeon Flashcard */}
+          <div className="bg-gradient-to-br from-amber-900/20 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-12 min-h-96 flex flex-col justify-center items-center text-center shadow-2xl">
             <div className="mb-6 flex flex-wrap items-center justify-center gap-3">
-              <span className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-4 py-2 rounded-full font-bold">
-                📚 {currentCard.subject || 'General'}
+              <span className="bg-gradient-to-r from-amber-600 to-orange-700 text-white px-4 py-2 rounded border-2 border-amber-400/50 font-mono font-bold">
+                📚 {currentCard.subject || 'GENERAL'}
               </span>
               {currentCard.reviewCount > 0 && (
                 <span className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-full font-bold">
@@ -389,7 +389,7 @@ const AdvancedStudyModes = ({
             {!showAnswer ? (
               <button
                 onClick={() => setShowAnswer(true)}
-                className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-10 py-4 rounded-2xl hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 font-bold text-lg shadow-lg hover:shadow-blue-500/50 transform hover:scale-105 mb-6"
+                className="bg-gradient-to-r from-amber-600 to-orange-700 text-white px-10 py-4 rounded border-2 border-amber-400/50 hover:from-amber-700 hover:to-orange-800 transition-all duration-300 font-mono font-bold text-lg shadow-lg hover:shadow-amber-500/50 transform hover:scale-105 mb-6"
               >
                 ✨ Show Answer
               </button>
@@ -450,30 +450,33 @@ const AdvancedStudyModes = ({
       ) : (
         // Other Study Modes - Keep existing UI
         <>
-          {/* Session Header */}
-          <div className="bg-gradient-to-br from-purple-500/20 to-indigo-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-6 shadow-2xl">
+          {/* Dungeon Session Header */}
+          <div className="bg-gradient-to-br from-amber-900/20 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-6 shadow-2xl">
             <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center space-y-4 lg:space-y-0">
               <div>
-                <h2 className="text-3xl font-black text-white mb-2 flex items-center">
+                <h2 className="text-3xl font-black text-amber-400 mb-2 flex items-center font-mono">
                   {studyMode === 'active-recall' && <Type className="mr-3" size={28} />}
                   {studyMode === 'cloze' && <Edit3 className="mr-3" size={28} />}
                   {studyMode === 'concept-explanation' && <Lightbulb className="mr-3" size={28} />}
+                  {studyMode === 'active-recall' && 'ACTIVE RECALL QUEST'}
+                  {studyMode === 'cloze' && 'DECIPHER QUEST'}
+                  {studyMode === 'concept-explanation' && 'KNOWLEDGE QUEST'}
                 </h2>
-                <p className="text-white/80">
-                  {studyMode === 'active-recall' && 'Type your answers to strengthen memory'}
-                  {studyMode === 'cloze' && 'Fill in the blanks to test understanding'}
-                  {studyMode === 'concept-explanation' && 'Explain why the answer is correct'}
+                <p className="text-amber-300 font-mono">
+                  {studyMode === 'active-recall' && '&gt; TYPE YOUR ANSWERS TO STRENGTHEN MEMORY'}
+                  {studyMode === 'cloze' && '&gt; FILL IN THE BLANKS TO TEST UNDERSTANDING'}
+                  {studyMode === 'concept-explanation' && '&gt; EXPLAIN WHY THE ANSWER IS CORRECT'}
                 </p>
               </div>
               
               <div className="flex items-center space-x-4">
                 <div className="text-right">
-                  <div className="text-2xl font-black text-white">{currentCardIndex + 1}/{studyCards.length}</div>
-                  <div className="text-sm text-white/70">Cards</div>
+                  <div className="text-2xl font-black text-amber-400 font-mono">{currentCardIndex + 1}/{studyCards.length}</div>
+                  <div className="text-sm text-amber-300 font-mono">SCROLLS</div>
                 </div>
                 <div className="text-right">
-                  <div className="text-2xl font-black text-white">{Math.floor(timer / 60)}:{(timer % 60).toString().padStart(2, '0')}</div>
-                  <div className="text-sm text-white/70">Time</div>
+                  <div className="text-2xl font-black text-amber-400 font-mono">{Math.floor(timer / 60)}:{(timer % 60).toString().padStart(2, '0')}</div>
+                  <div className="text-sm text-amber-300 font-mono">TIME</div>
                 </div>
               </div>
             </div>
@@ -585,7 +588,7 @@ const AdvancedStudyModes = ({
               <button
                 onClick={checkAnswer}
                 disabled={!userAnswer.trim()}
-                className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-8 py-3 rounded-2xl font-bold hover:from-blue-600 hover:to-cyan-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-gradient-to-r from-amber-600 to-orange-700 text-white px-8 py-3 rounded border-2 border-amber-400/50 font-mono font-bold hover:from-amber-700 hover:to-orange-800 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <CheckCircle className="inline mr-2" size={20} />
                 Check Answer

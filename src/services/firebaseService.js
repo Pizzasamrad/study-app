@@ -178,3 +178,76 @@ export const getCustomizations = () => getDocuments('customizations');
 export const saveCustomization = (data) => saveDocument('customizations', data);
 export const updateCustomization = (id, updates) => updateDocument('customizations', id, updates);
 export const deleteCustomization = (id) => deleteDocument('customizations', id);
+
+// User Profile Management
+export const getUserProfile = async () => {
+  try {
+    const user = auth.currentUser;
+    if (!user) throw new Error("User not authenticated");
+
+    const q = query(
+      collection(db, 'userProfiles'),
+      where("userId", "==", user.uid)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    if (querySnapshot.empty) {
+      // Create default profile if none exists
+      return await saveDocument('userProfiles', {
+        displayName: user.displayName || user.email?.split('@')[0] || 'User',
+        email: user.email,
+        avatar: 'default',
+        level: 1,
+        xp: 0,
+        streak: 0,
+        createdAt: new Date()
+      });
+    }
+    
+    return { id: querySnapshot.docs[0].id, ...querySnapshot.docs[0].data() };
+  } catch (error) {
+    console.error("Error getting user profile:", error);
+    throw error;
+  }
+};
+
+export const updateUserProfile = async (updates) => {
+  try {
+    const user = auth.currentUser;
+    if (!user) throw new Error("User not authenticated");
+
+    // Update Firebase Auth display name if provided
+    if (updates.displayName) {
+      await user.updateProfile({
+        displayName: updates.displayName
+      });
+    }
+
+    // Update Firestore profile
+    const q = query(
+      collection(db, 'userProfiles'),
+      where("userId", "==", user.uid)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    if (!querySnapshot.empty) {
+      const profileId = querySnapshot.docs[0].id;
+      return await updateDocument('userProfiles', profileId, updates);
+    } else {
+      // Create profile if it doesn't exist
+      return await saveDocument('userProfiles', {
+        displayName: updates.displayName || user.displayName || user.email?.split('@')[0] || 'User',
+        email: user.email,
+        avatar: updates.avatar || 'default',
+        level: 1,
+        xp: 0,
+        streak: 0,
+        createdAt: new Date(),
+        ...updates
+      });
+    }
+  } catch (error) {
+    console.error("Error updating user profile:", error);
+    throw error;
+  }
+};

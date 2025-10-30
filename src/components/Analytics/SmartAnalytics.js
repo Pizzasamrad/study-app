@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  LineChart, Line, PieChart, Pie, Cell
+  PieChart, Pie, Cell
 } from 'recharts';
 import { 
   Clock, Calendar, BookOpen, TrendingUp, Flame, BarChart3
@@ -89,33 +89,33 @@ const SmartAnalytics = ({ studyLogs, flashcards, blurts }) => {
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">
-      {/* Header */}
-      <div className="bg-gradient-to-br from-blue-500/20 to-cyan-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-8 shadow-2xl">
+      {/* Dungeon Header */}
+      <div className="bg-gradient-to-br from-amber-900/20 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-8 shadow-2xl">
         <div className="text-center">
-          <h2 className="text-4xl font-black text-white mb-4 flex items-center justify-center">
+          <h2 className="text-4xl font-black text-amber-400 mb-4 flex items-center justify-center font-mono">
             <BarChart3 className="mr-3" size={32} />
-            Study Analytics
+            QUEST ANALYTICS
           </h2>
-          <p className="text-white/80 text-xl font-medium">
-            Track your study sessions and time
+          <p className="text-amber-300 text-xl font-mono">
+            &gt; TRACK YOUR QUEST SESSIONS AND TIME
           </p>
         </div>
       </div>
 
       {/* Time Range Selector */}
-      <div className="bg-gradient-to-br from-purple-500/20 to-indigo-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-6 shadow-2xl">
+      <div className="bg-gradient-to-br from-amber-900/20 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-6 shadow-2xl">
         <div className="flex justify-center space-x-4">
           {['week', 'month', 'all'].map(range => (
             <button
               key={range}
               onClick={() => setTimeRange(range)}
-              className={`px-6 py-3 rounded-2xl font-bold transition-all duration-300 ${
+              className={`px-6 py-3 rounded border-2 font-mono font-bold transition-all duration-300 ${
                 timeRange === range
-                  ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg shadow-purple-500/50'
-                  : 'bg-white/10 backdrop-blur-sm text-white/80 hover:bg-white/20 border border-white/20'
+                  ? 'bg-gradient-to-r from-amber-600 to-orange-700 text-white border-amber-400/50 shadow-lg shadow-amber-500/50'
+                  : 'bg-amber-900/20 backdrop-blur-sm text-amber-300/80 hover:bg-amber-500/20 border-amber-400/30'
               }`}
             >
-              {range === 'week' ? 'This Week' : range === 'month' ? 'This Month' : 'All Time'}
+              {range === 'week' ? 'THIS WEEK' : range === 'month' ? 'THIS MONTH' : 'ALL TIME'}
             </button>
           ))}
         </div>
@@ -124,43 +124,43 @@ const SmartAnalytics = ({ studyLogs, flashcards, blurts }) => {
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Total Study Time */}
-        <div className="bg-gradient-to-br from-green-500/20 to-emerald-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-6 shadow-2xl">
+        <div className="bg-gradient-to-br from-amber-900/20 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-6 shadow-2xl">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl shadow-lg">
+            <div className="p-3 bg-gradient-to-br from-amber-600 to-orange-700 rounded-lg shadow-lg">
               <Clock className="text-white" size={24} />
             </div>
             <div className="text-right">
-              <p className="text-3xl font-black text-white">{formatTime(analytics.totalStudyTime)}</p>
-              <p className="text-sm text-green-200 font-medium">Total Time</p>
+              <p className="text-3xl font-black text-amber-400 font-mono">{formatTime(analytics.totalStudyTime)}</p>
+              <p className="text-sm text-amber-300 font-mono">TOTAL TIME</p>
             </div>
           </div>
-          <h3 className="text-xl font-bold text-white mb-2">Study Time</h3>
-          <p className="text-green-200 text-sm">
-            {analytics.totalStudyTime > 0 ? 'Great dedication to learning!' : 'Start your first study session'}
+          <h3 className="text-xl font-bold text-amber-400 mb-2 font-mono">QUEST TIME</h3>
+          <p className="text-amber-300 text-sm font-mono">
+            {analytics.totalStudyTime > 0 ? '&gt; GREAT DEDICATION TO LEARNING!' : '&gt; BEGIN YOUR FIRST QUEST'}
           </p>
         </div>
 
         {/* Total Sessions */}
-        <div className="bg-gradient-to-br from-blue-500/20 to-cyan-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-6 shadow-2xl">
+        <div className="bg-gradient-to-br from-amber-900/20 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-6 shadow-2xl">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-gradient-to-br from-blue-400 to-cyan-500 rounded-xl shadow-lg">
+            <div className="p-3 bg-gradient-to-br from-amber-600 to-orange-700 rounded-lg shadow-lg">
               <BookOpen className="text-white" size={24} />
             </div>
             <div className="text-right">
-              <p className="text-3xl font-black text-white">{analytics.totalSessions}</p>
-              <p className="text-sm text-blue-200 font-medium">Sessions</p>
+              <p className="text-3xl font-black text-amber-400 font-mono">{analytics.totalSessions}</p>
+              <p className="text-sm text-amber-300 font-mono">QUESTS</p>
             </div>
           </div>
-          <h3 className="text-xl font-bold text-white mb-2">Study Sessions</h3>
+          <h3 className="text-xl font-bold text-amber-400 mb-2 font-mono">QUEST SESSIONS</h3>
           <p className="text-blue-200 text-sm">
             {analytics.totalSessions > 0 ? 'Consistent study habits!' : 'Log your first session'}
           </p>
         </div>
 
         {/* Average Session */}
-        <div className="bg-gradient-to-br from-purple-500/20 to-pink-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-6 shadow-2xl">
+        <div className="bg-gradient-to-br from-amber-900/20 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-6 shadow-2xl">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-gradient-to-br from-purple-400 to-pink-500 rounded-xl shadow-lg">
+            <div className="p-3 bg-gradient-to-br from-amber-600 to-orange-700 rounded-lg shadow-lg">
               <TrendingUp className="text-white" size={24} />
             </div>
             <div className="text-right">
@@ -193,7 +193,7 @@ const SmartAnalytics = ({ studyLogs, flashcards, blurts }) => {
       </div>
 
       {/* Weekly Progress Chart */}
-      <div className="bg-gradient-to-br from-indigo-500/20 to-purple-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-8 shadow-2xl">
+      <div className="bg-gradient-to-br from-amber-900/20 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-8 shadow-2xl">
         <h3 className="text-3xl font-bold text-white mb-6 flex items-center">
           <Calendar className="mr-3" size={24} />
           Weekly Study Time

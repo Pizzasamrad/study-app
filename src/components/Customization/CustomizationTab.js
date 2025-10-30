@@ -5,7 +5,6 @@ import {
 } from 'lucide-react';
 import { 
   getUnlockedCustomizations, 
-  getNextUnlocks, 
   CUSTOMIZATION_CONFIG
 } from '../../services/customizationService';
 import { getLevelStats, getAchievements } from '../../services/levelService';
@@ -17,7 +16,8 @@ const CustomizationTab = ({
   streakData,
   selectedCustomizations,
   onCustomizationChange,
-  devLevel = 1
+  devLevel = 1,
+  user
 }) => {
   const [activeTab, setActiveTab] = useState('avatars');
 
@@ -25,11 +25,10 @@ const CustomizationTab = ({
   const levelData = getLevelStats(studyLogs, flashcards, blurts, streakData);
   const achievements = getAchievements(levelData, levelData.stats);
   const unlockedCustomizations = getUnlockedCustomizations(devLevel, achievements, levelData.stats);
-  const nextUnlocks = getNextUnlocks(devLevel, achievements, levelData.stats);
 
   const tabs = [
-    { id: 'avatars', name: 'Avatars', icon: Brain, color: 'from-purple-500 to-pink-500', configKey: 'AVATARS' },
-    { id: 'backgrounds', name: 'Backgrounds', icon: Palette, color: 'from-blue-500 to-cyan-500', configKey: 'BACKGROUNDS' }
+    { id: 'avatars', name: 'Avatars', icon: Brain, color: 'from-amber-600 to-orange-700', configKey: 'AVATARS' },
+    { id: 'backgrounds', name: 'Backgrounds', icon: Palette, color: 'from-amber-600 to-orange-700', configKey: 'BACKGROUNDS' }
   ];
 
   const renderCustomizationItem = (item, type) => {
@@ -47,6 +46,10 @@ const CustomizationTab = ({
               : 'border-white/10 bg-white/5 opacity-50'
         }`}
         onClick={() => {
+          if (!user) {
+            alert('Please sign in to customize your profile');
+            return;
+          }
           if (isUnlocked) {
             onCustomizationChange(type, item.id);
           }
@@ -82,8 +85,12 @@ const CustomizationTab = ({
           {type === 'backgrounds' && (
             <div className="text-center mb-4">
               <div 
-                className={`w-full h-20 rounded-xl mb-3 bg-gradient-to-r ${item.gradient} border border-white/20`}
-              ></div>
+                className={`w-full h-20 rounded-xl mb-3 bg-gradient-to-r ${item.gradient} border border-white/20 relative overflow-hidden`}
+              >
+                <div className="absolute bottom-1 right-1 text-xs text-white/80 font-bold drop-shadow-lg">
+                  {item.level > 0 ? `Lv.${item.level}` : (item.requirement === 'streak7' ? '7 Day Streak' : item.requirement === 'cards50' ? '50 Cards' : item.requirement)}
+                </div>
+              </div>
               <h3 className="text-lg font-bold text-white mb-1">{item.name}</h3>
               <p className="text-white/60 text-sm">{item.description}</p>
             </div>
@@ -127,17 +134,17 @@ const CustomizationTab = ({
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <div className="bg-gradient-to-br from-purple-500/20 to-indigo-600/20 backdrop-blur-xl rounded-2xl border border-purple-500/30 p-4 text-center">
-          <div className="text-2xl font-black text-white">{levelData.level}</div>
-          <div className="text-purple-200 text-sm">Current Level</div>
+        <div className="bg-gradient-to-br from-amber-900/20 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-4 text-center">
+          <div className="text-2xl font-black text-amber-400 font-mono">{levelData.level}</div>
+          <div className="text-amber-300 text-sm font-mono">CURRENT LEVEL</div>
         </div>
-        <div className="bg-gradient-to-br from-blue-500/20 to-cyan-600/20 backdrop-blur-xl rounded-2xl border border-blue-500/30 p-4 text-center">
-          <div className="text-2xl font-black text-white">{unlockedCustomizations.avatars.length}</div>
-          <div className="text-blue-200 text-sm">Avatars Unlocked</div>
+        <div className="bg-gradient-to-br from-amber-900/20 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-4 text-center">
+          <div className="text-2xl font-black text-amber-400 font-mono">{unlockedCustomizations.avatars.length}</div>
+          <div className="text-amber-300 text-sm font-mono">AVATARS UNLOCKED</div>
         </div>
-        <div className="bg-gradient-to-br from-green-500/20 to-emerald-600/20 backdrop-blur-xl rounded-2xl border border-green-500/30 p-4 text-center">
-          <div className="text-2xl font-black text-white">{unlockedCustomizations.backgrounds.length}</div>
-          <div className="text-green-200 text-sm">Backgrounds Unlocked</div>
+        <div className="bg-gradient-to-br from-amber-900/20 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-4 text-center">
+          <div className="text-2xl font-black text-amber-400 font-mono">{unlockedCustomizations.backgrounds.length}</div>
+          <div className="text-amber-300 text-sm font-mono">DUNGEONS UNLOCKED</div>
         </div>
       </div>
 

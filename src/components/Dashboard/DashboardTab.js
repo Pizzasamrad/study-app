@@ -21,12 +21,22 @@ const DashboardTab = ({
     <div className="max-w-7xl mx-auto px-6 space-y-8">
       {/* Welcome Section */}
       <div className="text-center mb-8">
-        <h2 className="text-4xl font-black bg-gradient-to-r from-white via-purple-200 to-pink-200 bg-clip-text text-transparent mb-4">
-          Welcome back! 🚀
+        <h2 className="text-6xl font-black text-amber-400 mb-4 font-mono tracking-wider">
+          DUNGEON_MASTER
         </h2>
-        <p className="text-white/80 text-lg">
-          Ready to crush your learning goals today?
+        <p className="text-amber-300 text-lg font-mono">
+          {'>'} PREPARING KNOWLEDGE QUEST...
         </p>
+        <div className="mt-6 flex items-center justify-center space-x-6 text-sm font-mono">
+          <div className="flex items-center space-x-2 bg-amber-900/30 px-4 py-2 border border-amber-400/50">
+            <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
+            <span className="text-amber-400">ADVENTURE READY</span>
+          </div>
+          <div className="flex items-center space-x-2 bg-orange-900/30 px-4 py-2 border border-orange-400/50">
+            <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
+            <span className="text-orange-400">QUEST ACTIVE</span>
+          </div>
+        </div>
       </div>
 
       {/* Level Progress */}
@@ -40,25 +50,30 @@ const DashboardTab = ({
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {/* Flashcards Card */}
-        <div className="group bg-gradient-to-br from-purple-500/20 to-indigo-600/20 backdrop-blur-xl rounded-2xl border-purple-500/30 p-6 hover:shadow-2xl hover:shadow-purple-500/25 transition-all duration-300 transform hover:-translate-y-2 hover:scale-105 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-purple-500/5 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+        <div className="group bg-gradient-to-br from-amber-900/30 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-6 hover:shadow-2xl hover:shadow-amber-500/25 transition-all duration-300 transform hover:-translate-y-2 hover:scale-105 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-500/5 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+          <div className="absolute top-2 right-2 w-3 h-3 bg-amber-400 rounded-full animate-pulse"></div>
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-gradient-to-br from-purple-400 to-indigo-500 rounded-xl shadow-lg group-hover:animate-bounce">
+              <div className="p-3 bg-gradient-to-br from-amber-600 to-orange-800 rounded-lg shadow-lg group-hover:animate-bounce relative">
                 <Brain className="text-white" size={24} />
+                <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full animate-ping"></div>
               </div>
               <div className="text-right">
-                <p className="text-3xl font-black text-white">{flashcards.length}</p>
-                <p className="text-sm text-purple-200 font-medium">Total Cards</p>
+                <p className="text-4xl font-black text-amber-400 drop-shadow-lg font-mono">{flashcards.length}</p>
+                <p className="text-sm text-amber-300 font-mono">SCROLLS</p>
               </div>
             </div>
-            <h3 className="text-xl font-bold text-white mb-2">Flashcards</h3>
-            <p className="text-purple-200 mb-4 text-sm">
-              {reviewedCards > 0 ? `📚 ${reviewedCards} cards studied` : '✨ Start studying your cards!'}
+            <h3 className="text-xl font-bold text-amber-400 mb-2 flex items-center space-x-2 font-mono">
+              <span>⚔️</span>
+              <span>KNOWLEDGE_VAULT</span>
+            </h3>
+            <p className="text-amber-300 mb-4 text-sm font-mono">
+              {reviewedCards > 0 ? `> ${reviewedCards} SCROLLS MASTERED` : '> AWAITING QUEST...'}
             </p>
-            <div className="w-full bg-white/10 rounded-full h-2 mb-4">
+            <div className="w-full bg-black/50 border border-amber-400/30 rounded h-3 mb-4">
               <div 
-                className="bg-gradient-to-r from-purple-500 to-indigo-600 h-2 rounded-full transition-all duration-500"
+                className="bg-gradient-to-r from-amber-400 to-orange-500 h-3 rounded transition-all duration-500"
                 style={{ width: `${completionRate}%` }}
               ></div>
             </div>
@@ -68,35 +83,38 @@ const DashboardTab = ({
                 e.stopPropagation();
                 onTabChange('flashcards');
               }}
-              className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 text-white py-3 rounded-xl hover:from-purple-600 hover:to-indigo-700 transition-all duration-300 font-bold shadow-lg hover:shadow-purple-500/50 transform hover:scale-105 flex items-center justify-center space-x-2"
+              className="w-full bg-gradient-to-r from-amber-600 to-orange-700 text-white py-3 rounded border-2 border-amber-400 hover:from-amber-700 hover:to-orange-800 transition-all duration-300 font-mono font-bold shadow-lg hover:shadow-amber-500/50 transform hover:scale-105 flex items-center justify-center space-x-2"
               style={{ touchAction: 'manipulation' }}
             >
               <Zap size={16} />
-              <span>Study Now</span>
+              <span>{'>'} BEGIN QUEST</span>
             </button>
           </div>
         </div>
 
         {/* Study Sessions Card */}
-        <div className="group bg-gradient-to-br from-purple-500/20 to-indigo-600/20 backdrop-blur-xl rounded-2xl border-purple-500/30 p-6 hover:shadow-2xl hover:shadow-green-500/25 transition-all duration-300 transform hover:-translate-y-2 hover:scale-105 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-green-500/5 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+        <div className="group bg-gradient-to-br from-amber-900/30 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-6 hover:shadow-2xl hover:shadow-amber-500/25 transition-all duration-300 transform hover:-translate-y-2 hover:scale-105 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-500/5 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-gradient-to-br from-green-400 to-teal-500 rounded-xl shadow-lg group-hover:animate-spin">
+              <div className="p-3 bg-gradient-to-br from-amber-600 to-orange-700 rounded-lg shadow-lg group-hover:animate-spin">
                 <Clock className="text-white" size={24} />
               </div>
               <div className="text-right">
-                <p className="text-3xl font-black text-white">{studyLogs.length}</p>
-                <p className="text-sm text-green-200 font-medium">Sessions</p>
+                <p className="text-3xl font-black text-amber-400 drop-shadow-lg font-mono">{studyLogs.length}</p>
+                <p className="text-sm text-amber-300 font-mono">QUESTS</p>
               </div>
             </div>
-            <h3 className="text-xl font-bold text-white mb-2">Study Sessions</h3>
-            <p className="text-green-200 mb-4 text-sm">
-              {studyLogs.length > 0 ? `⏱️ ${averageSessionTime} min avg session` : '🌟 Start your first session'}
+            <h3 className="text-xl font-bold text-amber-400 mb-2 flex items-center space-x-2 font-mono">
+              <span>⏰</span>
+              <span>QUEST LOG</span>
+            </h3>
+            <p className="text-amber-300 mb-4 text-sm font-mono">
+              {studyLogs.length > 0 ? `> ${averageSessionTime} MIN AVG QUEST` : '> BEGIN YOUR FIRST QUEST'}
             </p>
             <div className="flex items-center space-x-2 mb-4">
-              <TrendingUp className="text-green-400" size={16} />
-              <span className="text-green-200 text-sm font-medium">{totalStudyHours}h total study time</span>
+              <TrendingUp className="text-amber-400" size={16} />
+              <span className="text-amber-300 text-sm font-mono">{totalStudyHours}h TOTAL QUEST TIME</span>
             </div>
             <button
               onClick={(e) => {
@@ -104,35 +122,38 @@ const DashboardTab = ({
                 e.stopPropagation();
                 onTabChange('pomodoro');
               }}
-              className="w-full bg-gradient-to-r from-green-500 to-teal-600 text-white py-3 rounded-xl hover:from-green-600 hover:to-teal-700 transition-all duration-300 font-bold shadow-lg hover:shadow-green-500/50 transform hover:scale-105 flex items-center justify-center space-x-2"
+              className="w-full bg-gradient-to-r from-amber-600 to-orange-700 text-white py-3 rounded border-2 border-amber-400 hover:from-amber-700 hover:to-orange-800 transition-all duration-300 font-mono font-bold shadow-lg hover:shadow-amber-500/50 transform hover:scale-105 flex items-center justify-center space-x-2"
               style={{ touchAction: 'manipulation' }}
             >
               <Clock size={16} />
-              <span>Start Timer</span>
+              <span>{'>'} START QUEST</span>
             </button>
           </div>
         </div>
 
         {/* Analytics Card */}
-        <div className="group bg-gradient-to-br from-purple-500/20 to-indigo-600/20 backdrop-blur-xl rounded-2xl border-purple-500/30 p-6 hover:shadow-2xl hover:shadow-blue-500/25 transition-all duration-300 transform hover:-translate-y-2 hover:scale-105 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-500/5 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+        <div className="group bg-gradient-to-br from-amber-900/30 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-6 hover:shadow-2xl hover:shadow-amber-500/25 transition-all duration-300 transform hover:-translate-y-2 hover:scale-105 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-500/5 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-gradient-to-br from-blue-400 to-cyan-500 rounded-xl shadow-lg group-hover:animate-pulse">
+              <div className="p-3 bg-gradient-to-br from-amber-600 to-orange-700 rounded-lg shadow-lg group-hover:animate-pulse">
                 <BarChart3 className="text-white" size={24} />
               </div>
               <div className="text-right">
-                <p className="text-3xl font-black text-white">{totalStudyHours}</p>
-                <p className="text-sm text-blue-200 font-medium">Hours</p>
+                <p className="text-3xl font-black text-amber-400 drop-shadow-lg font-mono">{totalStudyHours}</p>
+                <p className="text-sm text-amber-300 font-mono">HOURS</p>
               </div>
             </div>
-            <h3 className="text-xl font-bold text-white mb-2">Analytics</h3>
-            <p className="text-blue-200 mb-4 text-sm">
-              {studyLogs.length > 0 ? '📈 Track your progress' : '📊 No data yet'}
+            <h3 className="text-xl font-bold text-amber-400 mb-2 flex items-center space-x-2 font-mono">
+              <span>📊</span>
+              <span>QUEST STATS</span>
+            </h3>
+            <p className="text-amber-300 mb-4 text-sm font-mono">
+              {studyLogs.length > 0 ? '> TRACK YOUR QUEST PROGRESS' : '> NO QUEST DATA YET'}
             </p>
             <div className="flex items-center space-x-2 mb-4">
-              <Star className="text-blue-400" size={16} />
-              <span className="text-blue-200 text-sm font-medium">Detailed insights available</span>
+              <Star className="text-amber-400" size={16} />
+              <span className="text-amber-300 text-sm font-mono">DETAILED INSIGHTS AVAILABLE</span>
             </div>
             <button
               onClick={(e) => {
@@ -140,35 +161,38 @@ const DashboardTab = ({
                 e.stopPropagation();
                 onTabChange('analytics');
               }}
-              className="w-full bg-gradient-to-r from-blue-500 to-cyan-600 text-white py-3 rounded-xl hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 font-bold shadow-lg hover:shadow-blue-500/50 transform hover:scale-105 flex items-center justify-center space-x-2"
+              className="w-full bg-gradient-to-r from-amber-600 to-orange-700 text-white py-3 rounded border-2 border-amber-400 hover:from-amber-700 hover:to-orange-800 transition-all duration-300 font-mono font-bold shadow-lg hover:shadow-amber-500/50 transform hover:scale-105 flex items-center justify-center space-x-2"
               style={{ touchAction: 'manipulation' }}
             >
               <BarChart3 size={16} />
-              <span>View Analytics</span>
+              <span>{'>'} VIEW STATS</span>
             </button>
           </div>
         </div>
 
         {/* Advanced Study Card */}
-        <div className="group bg-gradient-to-br from-purple-500/20 to-indigo-600/20 backdrop-blur-xl rounded-2xl border-purple-500/30 p-6 hover:shadow-2xl hover:shadow-indigo-500/25 transition-all duration-300 transform hover:-translate-y-2 hover:scale-105 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-indigo-500/5 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+        <div className="group bg-gradient-to-br from-amber-900/30 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-6 hover:shadow-2xl hover:shadow-amber-500/25 transition-all duration-300 transform hover:-translate-y-2 hover:scale-105 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-500/5 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-xl shadow-lg group-hover:animate-bounce">
+              <div className="p-3 bg-gradient-to-br from-amber-600 to-orange-700 rounded-lg shadow-lg group-hover:animate-bounce">
                 <Target className="text-white" size={24} />
               </div>
               <div className="text-right">
-                <p className="text-3xl font-black text-white">4</p>
-                <p className="text-sm text-indigo-200 font-medium">Modes</p>
+                <p className="text-3xl font-black text-amber-400 drop-shadow-lg font-mono">4</p>
+                <p className="text-sm text-amber-300 font-mono">MODES</p>
               </div>
             </div>
-            <h3 className="text-xl font-bold text-white mb-2">Advanced Study</h3>
-            <p className="text-indigo-200 mb-4 text-sm">
-              Active recall, cloze deletion, concept explanation & more
+            <h3 className="text-xl font-bold text-amber-400 mb-2 flex items-center space-x-2 font-mono">
+              <span>🎯</span>
+              <span>ADVANCED QUEST</span>
+            </h3>
+            <p className="text-amber-300 mb-4 text-sm font-mono">
+              {'>'} ACTIVE RECALL, DECIPHER, RECALL & MORE
             </p>
             <div className="flex items-center space-x-2 mb-4">
-              <Trophy className="text-indigo-400" size={16} />
-              <span className="text-indigo-200 text-sm font-medium">Pro learning techniques</span>
+              <Trophy className="text-amber-400" size={16} />
+              <span className="text-amber-300 text-sm font-mono">PRO LEARNING TECHNIQUES</span>
             </div>
             <button
               onClick={(e) => {
@@ -176,11 +200,11 @@ const DashboardTab = ({
                 e.stopPropagation();
                 onTabChange('study');
               }}
-              className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white py-3 rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all duration-300 font-bold shadow-lg hover:shadow-indigo-500/50 transform hover:scale-105 flex items-center justify-center space-x-2"
+              className="w-full bg-gradient-to-r from-amber-600 to-orange-700 text-white py-3 rounded border-2 border-amber-400 hover:from-amber-700 hover:to-orange-800 transition-all duration-300 font-mono font-bold shadow-lg hover:shadow-amber-500/50 transform hover:scale-105 flex items-center justify-center space-x-2"
               style={{ touchAction: 'manipulation' }}
             >
               <Target size={16} />
-              <span>Start Learning</span>
+              <span>{'>'} START LEARNING</span>
             </button>
           </div>
         </div>
@@ -201,16 +225,16 @@ const DashboardTab = ({
                 e.stopPropagation();
                 onTabChange('flashcards');
               }}
-              className="bg-gradient-to-r from-purple-500/20 to-indigo-600/20 border border-purple-500/30 p-4 rounded-xl hover:from-purple-500/30 hover:to-indigo-600/30 transition-all duration-300 group"
+              className="bg-gradient-to-r from-amber-600/20 to-orange-700/20 border-2 border-amber-400/50 p-4 rounded-lg hover:from-amber-600/30 hover:to-orange-700/30 transition-all duration-300 group"
               style={{ touchAction: 'manipulation' }}
             >
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-purple-500/20 rounded-lg group-hover:bg-purple-500/30 transition-colors">
-                  <Brain size={20} className="text-purple-400" />
+                <div className="p-2 bg-amber-600/20 rounded-lg group-hover:bg-amber-600/30 transition-colors">
+                  <Brain size={20} className="text-amber-400" />
                 </div>
                 <div className="text-left">
                   <div className="font-bold text-white">Add Card</div>
-                  <div className="text-xs text-purple-200">Create new flashcard</div>
+                  <div className="text-xs text-amber-300 font-mono">CREATE NEW SCROLL</div>
                 </div>
               </div>
             </button>

@@ -9,11 +9,11 @@ const LevelProgress = ({ studyLogs, flashcards, blurts, streakData }) => {
 
   return (
     <div className="space-y-6">
-      {/* Level Overview */}
-      <div className="bg-gradient-to-br from-purple-500/20 to-indigo-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-6 shadow-2xl">
+      {/* Dungeon Level Overview */}
+      <div className="bg-gradient-to-br from-amber-900/20 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-4">
-            <div className="p-4 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-2xl">
+            <div className="p-4 bg-gradient-to-r from-amber-600 to-orange-700 rounded-lg">
               <Trophy className="text-white" size={32} />
             </div>
             <div>
@@ -36,7 +36,7 @@ const LevelProgress = ({ studyLogs, flashcards, blurts, streakData }) => {
           </div>
           <div className="w-full bg-white/10 rounded-full h-3">
             <div 
-              className="bg-gradient-to-r from-purple-500 to-indigo-500 h-3 rounded-full transition-all duration-1000 ease-out"
+              className="bg-gradient-to-r from-amber-600 to-orange-700 h-3 rounded-full transition-all duration-1000 ease-out"
               style={{ width: `${levelData.progress}%` }}
             ></div>
           </div>
@@ -48,8 +48,8 @@ const LevelProgress = ({ studyLogs, flashcards, blurts, streakData }) => {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-br from-blue-500/20 to-cyan-600/20 backdrop-blur-xl rounded-2xl border border-blue-500/30 p-4 text-center">
-          <Clock className="text-blue-400 mx-auto mb-2" size={24} />
+        <div className="bg-gradient-to-br from-amber-900/20 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-4 text-center">
+          <Clock className="text-amber-400 mx-auto mb-2" size={24} />
           <div className="text-2xl font-black text-white">{Math.round(levelData.stats.totalStudyTime / 60)}</div>
           <div className="text-blue-200 text-sm">Hours Studied</div>
         </div>
@@ -115,8 +115,8 @@ const LevelProgress = ({ studyLogs, flashcards, blurts, streakData }) => {
         </div>
       )}
 
-      {/* XP Breakdown */}
-      <div className="bg-gradient-to-br from-indigo-500/20 to-purple-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-6 shadow-2xl">
+      {/* Dungeon XP Breakdown */}
+      <div className="bg-gradient-to-br from-amber-900/20 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-6 shadow-2xl">
         <h3 className="text-xl font-bold text-white mb-4 flex items-center">
           <Star className="mr-3 text-indigo-400" size={24} />
           XP Breakdown

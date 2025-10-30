@@ -215,23 +215,23 @@ const AdvancedAnalytics = ({ studyLogs, flashcards }) => {
   }, [studyLogs, flashcards, timeRange]);
 
   const MetricCard = ({ icon: Icon, title, value, subtitle, color = colors.primary, trend }) => (
-    <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl rounded-3xl border border-white/20 p-6 shadow-2xl hover:shadow-indigo-500/25 transition-all duration-300 transform hover:-translate-y-1 hover:scale-105 group animate-bounce-in relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+    <div className="bg-gradient-to-br from-amber-900/20 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-6 shadow-2xl hover:shadow-amber-500/25 transition-all duration-300 transform hover:-translate-y-1 hover:scale-105 group animate-bounce-in relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-500/5 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
       <div className="flex items-center justify-between mb-4 relative z-10">
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-400/20 to-purple-500/20 backdrop-blur-sm border border-white/20">
-          <Icon size={28} className="text-white" />
+        <div className="p-4 rounded-lg bg-gradient-to-br from-amber-600/20 to-orange-700/20 backdrop-blur-sm border-2 border-amber-400/50">
+          <Icon size={28} className="text-amber-400" />
         </div>
         {trend && (
-          <div className={`flex items-center text-sm font-bold px-3 py-1 rounded-full backdrop-blur-sm ${trend > 0 ? 'text-green-300 bg-green-500/20' : 'text-red-300 bg-red-500/20'}`}>
+          <div className={`flex items-center text-sm font-mono font-bold px-3 py-1 rounded border backdrop-blur-sm ${trend > 0 ? 'text-green-300 bg-green-500/20 border-green-400/50' : 'text-red-300 bg-red-500/20 border-red-400/50'}`}>
             <TrendingUp size={16} className={trend < 0 ? 'transform rotate-180' : ''} />
             <span className="ml-1">{Math.abs(trend)}%</span>
           </div>
         )}
       </div>
       <div className="relative z-10">
-        <h3 className="text-3xl font-black text-white mb-2">{value}</h3>
-        <p className="text-white/90 font-bold mb-1">{title}</p>
-        {subtitle && <p className="text-white/70 text-sm">{subtitle}</p>}
+        <h3 className="text-3xl font-black text-amber-400 mb-2 font-mono">{value}</h3>
+        <p className="text-amber-300 font-bold mb-1 font-mono">{title}</p>
+        {subtitle && <p className="text-amber-400/70 text-sm font-mono">{subtitle}</p>}
       </div>
     </div>
   );
@@ -255,8 +255,8 @@ const AdvancedAnalytics = ({ studyLogs, flashcards }) => {
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">
-      {/* Header */}
-      <div className="bg-gradient-to-br from-indigo-500/20 to-purple-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-8 shadow-2xl animate-slide-up">
+      {/* Dungeon Header */}
+      <div className="bg-gradient-to-br from-amber-900/20 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-8 shadow-2xl animate-slide-up">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between">
           <div className="text-center md:text-left">
             <h2 className="text-4xl font-black text-white mb-4 flex items-center justify-center md:justify-start">
@@ -313,22 +313,22 @@ const AdvancedAnalytics = ({ studyLogs, flashcards }) => {
         />
       </div>
 
-      {/* Chart Navigation */}
-      <div className="bg-gradient-to-br from-cyan-500/20 to-blue-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-6 shadow-2xl animate-slide-up" style={{animationDelay: '0.2s'}}>
+      {/* Dungeon Chart Navigation */}
+      <div className="bg-gradient-to-br from-amber-900/20 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-6 shadow-2xl animate-slide-up" style={{animationDelay: '0.2s'}}>
         <div className="flex flex-wrap gap-4 justify-center">
           {[
-            { id: 'overview', label: '📈 Study Progress', icon: TrendingUp },
-            { id: 'subjects', label: '📚 Subject Analysis', icon: BookOpen },
-            { id: 'timing', label: '⏰ Study Timing', icon: Timer },
-            { id: 'difficulty', label: '🎯 Card Difficulty', icon: Target }
+            { id: 'overview', label: '📈 QUEST PROGRESS', icon: TrendingUp },
+            { id: 'subjects', label: '📚 SUBJECT ANALYSIS', icon: BookOpen },
+            { id: 'timing', label: '⏰ QUEST TIMING', icon: Timer },
+            { id: 'difficulty', label: '🎯 SCROLL DIFFICULTY', icon: Target }
           ].map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               onClick={() => setActiveChart(id)}
-              className={`flex items-center space-x-3 px-6 py-4 rounded-2xl font-bold transition-all duration-300 transform hover:scale-105 ${
+              className={`flex items-center space-x-3 px-6 py-4 rounded border-2 font-mono font-bold transition-all duration-300 transform hover:scale-105 ${
                 activeChart === id
-                  ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/50'
-                  : 'bg-white/10 backdrop-blur-sm text-white/80 hover:bg-white/20 border border-white/20'
+                  ? 'bg-gradient-to-r from-amber-600 to-orange-700 text-white border-amber-400/50 shadow-lg shadow-amber-500/50'
+                  : 'bg-amber-900/20 backdrop-blur-sm text-amber-300/80 hover:bg-amber-500/20 border-amber-400/30'
               }`}
             >
               <Icon size={20} />

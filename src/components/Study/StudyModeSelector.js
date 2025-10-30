@@ -14,8 +14,8 @@ const StudyModeSelector = ({ onModeSelect, onStartSession, flashcards = [] }) =>
       icon: Type,
       description: 'Type your answers to strengthen memory retention',
       benefits: ['Better long-term retention', 'Identifies knowledge gaps', 'Active learning'],
-      color: 'from-blue-500 to-cyan-500',
-      bgColor: 'from-blue-500/20 to-cyan-600/20'
+      color: 'from-amber-600 to-orange-700',
+      bgColor: 'from-amber-600/20 to-orange-700/20'
     },
     {
       id: 'cloze',
@@ -32,8 +32,8 @@ const StudyModeSelector = ({ onModeSelect, onStartSession, flashcards = [] }) =>
       icon: Lightbulb,
       description: 'Explain why the answer is correct',
       benefits: ['Deep understanding', 'Conceptual learning', 'Review explanations'],
-      color: 'from-purple-500 to-pink-500',
-      bgColor: 'from-purple-500/20 to-pink-600/20'
+      color: 'from-amber-600 to-orange-700',
+      bgColor: 'from-amber-600/20 to-orange-700/20'
     },
     {
       id: 'review',
@@ -63,8 +63,8 @@ const StudyModeSelector = ({ onModeSelect, onStartSession, flashcards = [] }) =>
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
-      {/* Header */}
-      <div className="bg-gradient-to-br from-purple-500/20 to-indigo-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-8 shadow-2xl text-center">
+      {/* Dungeon Header */}
+      <div className="bg-gradient-to-br from-amber-900/20 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-8 shadow-2xl text-center">
         <h2 className="text-4xl font-black text-white mb-4 flex items-center justify-center">
           <Brain className="mr-3" size={36} />
           Choose Your Study Mode

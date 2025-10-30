@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { 
-  Settings, Zap, Star, Crown, Target, Flame, Brain, Clock, 
-  Play, RotateCcw, Eye, Palette, Trophy, Award, Sparkles
+  Settings, Zap, Star, Crown, Target, Flame, 
+  Play, RotateCcw, Palette, Trophy, Award
 } from 'lucide-react';
 import { CUSTOMIZATION_CONFIG } from '../../services/customizationService';
-import { LEVEL_CONFIG } from '../../services/levelService';
 
 const DevTestPanel = ({ 
   onSetLevel, 
@@ -135,8 +134,8 @@ const DevTestPanel = ({
                     onClick={() => setActiveTab(tab.id)}
                     className={`flex items-center space-x-2 px-4 py-2 rounded-xl transition-all duration-300 ${
                       activeTab === tab.id 
-                        ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white' 
-                        : 'bg-white/10 text-white/80 hover:text-white hover:bg-white/20'
+                        ? 'bg-gradient-to-r from-amber-600 to-orange-700 text-white' 
+                        : 'bg-amber-900/20 text-amber-300/80 hover:text-amber-300 hover:bg-amber-500/20'
                     }`}
                   >
                     <Icon size={16} />
@@ -188,14 +187,14 @@ const DevTestPanel = ({
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                   <button
                     onClick={unlockAllCustomizations}
-                    className="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-4 rounded-xl font-bold hover:from-purple-600 hover:to-pink-600 transition-all duration-300"
+                    className="bg-gradient-to-r from-amber-600 to-orange-700 text-white p-4 rounded border-2 border-amber-400/50 font-mono font-bold hover:from-amber-700 hover:to-orange-800 transition-all duration-300"
                   >
                     <Star className="mx-auto mb-2" size={24} />
                     Unlock All
                   </button>
                   <button
                     onClick={testAllCustomizations}
-                    className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white p-4 rounded-xl font-bold hover:from-blue-600 hover:to-cyan-600 transition-all duration-300"
+                    className="bg-gradient-to-r from-amber-600 to-orange-700 text-white p-4 rounded border-2 border-amber-400/50 font-mono font-bold hover:from-amber-700 hover:to-orange-800 transition-all duration-300"
                   >
                     <Play className="mx-auto mb-2" size={24} />
                     Test Cycle
@@ -311,7 +310,7 @@ const DevTestPanel = ({
                       onSetAchievements(['level5', 'level10', 'monthStreak', 'cards200', 'studyTime1k']);
                       onSetStats({ totalStudyTime: 2000, totalCardsCreated: 100, totalCardsReviewed: 500, currentStreak: 30, longestStreak: 45 });
                     }}
-                    className="bg-gradient-to-r from-blue-500 to-purple-500 text-white p-4 rounded-xl font-bold hover:from-blue-600 hover:to-purple-600 transition-all duration-300"
+                    className="bg-gradient-to-r from-amber-600 to-orange-700 text-white p-4 rounded border-2 border-amber-400/50 font-mono font-bold hover:from-amber-700 hover:to-orange-800 transition-all duration-300"
                   >
                     <Crown className="mx-auto mb-2" size={24} />
                     Power User (Level 10)

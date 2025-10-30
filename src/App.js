@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Brain, Plus, Play, Pause, RotateCcw, Save, Edit3, Trash2, Search, Star, Calendar, Trophy, Award, Flame } from 'lucide-react';
+import { Brain, Plus, Play, Pause, RotateCcw, Save, Edit3, Trash2, Search, Star, Trophy, Award, Flame } from 'lucide-react';
 import { auth, onAuthStateChanged } from './firebase';
 import AuthModal from './components/Auth/AuthModal';
 
 import SmartAnalytics from './components/Analytics/SmartAnalytics';
 import CustomizationTab from './components/Customization/CustomizationTab';
-import DevTestPanel from './components/DevTools/DevTestPanel';
+// import DevTestPanel from './components/DevTools/DevTestPanel';
 import Header from './components/Common/Header';
 import Navigation from './components/Common/Navigation';
 import DashboardTab from './components/Dashboard/DashboardTab';
@@ -13,6 +13,7 @@ import * as storageService from './services/storageService';
 import * as userDataService from './services/userDataService';
 import { calculateTotalXP, calculateLevel, getAchievements, getLevelStats } from './services/levelService';
 import './animations.css';
+import { FEATURES } from './config/features';
 
 const StudyApp = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -360,14 +361,16 @@ const StudyApp = () => {
       // Update local state with the new card
       setFlashcards(prev => [...prev, savedCard]);
       
-      // Celebrate first flashcard or milestone
-      if (flashcards.length === 0) {
-        triggerCelebration('first_card', { message: 'Your first flashcard is ready! The journey to mastery begins now!' });
-      } else if ((flashcards.length + 1) % 10 === 0) {
-        triggerCelebration('milestone', { 
-          message: `${flashcards.length + 1} flashcards created! You're building an incredible knowledge base!`,
-          count: flashcards.length + 1 
-        });
+      // Optionally celebrate first/milestone flashcard creations
+      if (FEATURES.CELEBRATIONS && FEATURES.FLASHCARD_CELEBRATIONS) {
+        if (flashcards.length === 0) {
+          triggerCelebration('first_card', { message: 'Your first flashcard is ready! The journey to mastery begins now!' });
+        } else if ((flashcards.length + 1) % 10 === 0) {
+          triggerCelebration('milestone', { 
+            message: `${flashcards.length + 1} flashcards created! You're building an incredible knowledge base!`,
+            count: flashcards.length + 1 
+          });
+        }
       }
     } catch (error) {
       console.error('Error adding flashcard:', error);
@@ -423,10 +426,12 @@ const StudyApp = () => {
     
     // Celebrate review milestones
     const newReviewCount = (card.reviewCount || 0) + 1;
-    if (newReviewCount === 1) {
-      triggerCelebration('first_review', { message: 'First review completed! Your brain is already getting stronger!' });
-    } else if (newReviewCount === 10) {
-              triggerCelebration('review_master', { message: '10 reviews on this card - you\'re a memory master!' });
+    if (FEATURES.CELEBRATIONS && FEATURES.FLASHCARD_CELEBRATIONS) {
+      if (newReviewCount === 1) {
+        triggerCelebration('first_review', { message: 'First review completed! Your brain is already getting stronger!' });
+      } else if (newReviewCount === 10) {
+        triggerCelebration('review_master', { message: '10 reviews on this card - you\'re a memory master!' });
+      }
     }
   };
 

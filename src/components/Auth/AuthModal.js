@@ -53,7 +53,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
     if (shouldMigrate) {
       setMigrationStatus('migrating');
       try {
-        const result = await migrateLocalToCloud();
+        await migrateLocalToCloud();
         setMigrationStatus('success');
         setTimeout(() => {
           onAuthSuccess();
