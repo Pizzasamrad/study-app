@@ -1,4 +1,4 @@
-// 🏆 Comprehensive Level System Service
+// Comprehensive Level System Service
 // Calculates user levels based on multiple factors
 
 export const LEVEL_CONFIG = {
@@ -160,23 +160,23 @@ export const getAchievements = (levelData, stats) => {
   const achievements = [];
   
   // Level-based achievements
-  if (levelData.level >= 5) achievements.push({ id: 'level5', title: 'Study Enthusiast', description: 'Reached level 5', icon: '🏆' });
-  if (levelData.level >= 10) achievements.push({ id: 'level10', title: 'Learning Legend', description: 'Reached level 10', icon: '👑' });
-  if (levelData.level >= 15) achievements.push({ id: 'level15', title: 'Study Immortal', description: 'Reached max level', icon: '🌟' });
+  if (levelData.level >= 5) achievements.push({ id: 'level5', title: 'Study Enthusiast', description: 'Reached level 5', icon: '' });
+  if (levelData.level >= 10) achievements.push({ id: 'level10', title: 'Learning Legend', description: 'Reached level 10', icon: '' });
+  if (levelData.level >= 15) achievements.push({ id: 'level15', title: 'Study Immortal', description: 'Reached max level', icon: '' });
   
   // Streak achievements
-  if (stats.currentStreak >= 7) achievements.push({ id: 'weekStreak', title: 'Week Warrior', description: '7-day streak', icon: '🔥' });
-  if (stats.currentStreak >= 30) achievements.push({ id: 'monthStreak', title: 'Monthly Master', description: '30-day streak', icon: '💪' });
-  if (stats.longestStreak >= 100) achievements.push({ id: 'centuryStreak', title: 'Century Club', description: '100-day streak', icon: '⚡' });
+  if (stats.currentStreak >= 7) achievements.push({ id: 'weekStreak', title: 'Week Warrior', description: '7-day streak', icon: '' });
+  if (stats.currentStreak >= 30) achievements.push({ id: 'monthStreak', title: 'Monthly Master', description: '30-day streak', icon: '' });
+  if (stats.longestStreak >= 100) achievements.push({ id: 'centuryStreak', title: 'Century Club', description: '100-day streak', icon: '' });
   
   // Study time achievements
-  if (stats.totalStudyTime >= 1000) achievements.push({ id: 'studyTime1k', title: 'Time Master', description: '1000 minutes studied', icon: '⏰' });
-  if (stats.totalStudyTime >= 5000) achievements.push({ id: 'studyTime5k', title: 'Study Veteran', description: '5000 minutes studied', icon: '📚' });
+  if (stats.totalStudyTime >= 1000) achievements.push({ id: 'studyTime1k', title: 'Time Master', description: '1000 minutes studied', icon: '' });
+  if (stats.totalStudyTime >= 5000) achievements.push({ id: 'studyTime5k', title: 'Study Veteran', description: '5000 minutes studied', icon: '' });
   
   // Card achievements
-  if (stats.totalCardsCreated >= 50) achievements.push({ id: 'cards50', title: 'Card Creator', description: 'Created 50 cards', icon: '📝' });
-  if (stats.totalCardsCreated >= 200) achievements.push({ id: 'cards200', title: 'Card Master', description: 'Created 200 cards', icon: '🎯' });
-  if (stats.totalCardsReviewed >= 500) achievements.push({ id: 'reviews500', title: 'Review Master', description: 'Reviewed 500 cards', icon: '🔄' });
+  if (stats.totalCardsCreated >= 50) achievements.push({ id: 'cards50', title: 'Card Creator', description: 'Created 50 cards', icon: '' });
+  if (stats.totalCardsCreated >= 200) achievements.push({ id: 'cards200', title: 'Card Master', description: 'Created 200 cards', icon: '' });
+  if (stats.totalCardsReviewed >= 500) achievements.push({ id: 'reviews500', title: 'Review Master', description: 'Reviewed 500 cards', icon: '' });
   
   return achievements;
 };

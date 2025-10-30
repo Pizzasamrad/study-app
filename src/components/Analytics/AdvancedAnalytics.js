@@ -260,10 +260,10 @@ const AdvancedAnalytics = ({ studyLogs, flashcards }) => {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between">
           <div className="text-center md:text-left">
             <h2 className="text-4xl font-black text-white mb-4 flex items-center justify-center md:justify-start">
-              📊 Advanced Analytics
+              Advanced Analytics
             </h2>
             <p className="text-white/80 text-xl font-medium max-w-2xl">
-              🚀 Deep insights into your learning patterns and progress ✨
+              Deep insights into your learning patterns and progress
             </p>
           </div>
           
@@ -273,9 +273,9 @@ const AdvancedAnalytics = ({ studyLogs, flashcards }) => {
               onChange={(e) => setTimeRange(e.target.value)}
               className="px-6 py-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl text-white font-bold focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
             >
-              <option value="7d" className="bg-gray-800 text-white">📅 Last 7 days</option>
-              <option value="30d" className="bg-gray-800 text-white">📅 Last 30 days</option>
-              <option value="90d" className="bg-gray-800 text-white">📅 Last 90 days</option>
+              <option value="7d" className="bg-gray-800 text-white">Last 7 days</option>
+              <option value="30d" className="bg-gray-800 text-white">Last 30 days</option>
+              <option value="90d" className="bg-gray-800 text-white">Last 90 days</option>
             </select>
           </div>
         </div>
@@ -317,10 +317,10 @@ const AdvancedAnalytics = ({ studyLogs, flashcards }) => {
       <div className="bg-gradient-to-br from-amber-900/20 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-6 shadow-2xl animate-slide-up" style={{animationDelay: '0.2s'}}>
         <div className="flex flex-wrap gap-4 justify-center">
           {[
-            { id: 'overview', label: '📈 QUEST PROGRESS', icon: TrendingUp },
-            { id: 'subjects', label: '📚 SUBJECT ANALYSIS', icon: BookOpen },
-            { id: 'timing', label: '⏰ QUEST TIMING', icon: Timer },
-            { id: 'difficulty', label: '🎯 SCROLL DIFFICULTY', icon: Target }
+            { id: 'overview', label: 'QUEST PROGRESS', icon: TrendingUp },
+            { id: 'subjects', label: 'SUBJECT ANALYSIS', icon: BookOpen },
+            { id: 'timing', label: 'QUEST TIMING', icon: Timer },
+            { id: 'difficulty', label: 'SCROLL DIFFICULTY', icon: Target }
           ].map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -342,7 +342,7 @@ const AdvancedAnalytics = ({ studyLogs, flashcards }) => {
       <div className="bg-gradient-to-br from-gray-500/10 to-gray-600/10 backdrop-blur-xl rounded-3xl border border-white/20 p-8 shadow-2xl animate-slide-up" style={{animationDelay: '0.3s'}}>
         {activeChart === 'overview' && (
           <div>
-            <h3 className="text-3xl font-bold text-white mb-8 text-center">📈 Daily Study Progress</h3>
+            <h3 className="text-3xl font-bold text-white mb-8 text-center">Daily Study Progress</h3>
             <ResponsiveContainer width="100%" height={400}>
               <AreaChart data={analytics.dailyData}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -375,10 +375,10 @@ const AdvancedAnalytics = ({ studyLogs, flashcards }) => {
 
         {activeChart === 'subjects' && (
           <div>
-            <h3 className="text-3xl font-bold text-white mb-8 text-center">📚 Subject Performance</h3>
+            <h3 className="text-3xl font-bold text-white mb-8 text-center">Subject Performance</h3>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-                <h4 className="text-2xl font-bold text-white mb-6 text-center">⏰ Study Time by Subject</h4>
+                <h4 className="text-2xl font-bold text-white mb-6 text-center">Study Time by Subject</h4>
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
                     <Pie
@@ -400,7 +400,7 @@ const AdvancedAnalytics = ({ studyLogs, flashcards }) => {
               </div>
               
               <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-                <h4 className="text-2xl font-bold text-white mb-6 text-center">🃏 Cards per Subject</h4>
+                <h4 className="text-2xl font-bold text-white mb-6 text-center">Cards per Subject</h4>
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={analytics.subjectData}>
                     <CartesianGrid strokeDasharray="3 3" />
@@ -417,7 +417,7 @@ const AdvancedAnalytics = ({ studyLogs, flashcards }) => {
 
         {activeChart === 'timing' && (
           <div>
-            <h3 className="text-3xl font-bold text-white mb-8 text-center">⏰ Study Timing Patterns</h3>
+            <h3 className="text-3xl font-bold text-white mb-8 text-center">Study Timing Patterns</h3>
             <ResponsiveContainer width="100%" height={400}>
               <LineChart data={analytics.hourlyData}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -446,7 +446,7 @@ const AdvancedAnalytics = ({ studyLogs, flashcards }) => {
 
         {activeChart === 'difficulty' && (
           <div>
-            <h3 className="text-3xl font-bold text-white mb-8 text-center">🎯 Flashcard Difficulty Distribution</h3>
+            <h3 className="text-3xl font-bold text-white mb-8 text-center">Flashcard Difficulty Distribution</h3>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
                 <ResponsiveContainer width="100%" height={300}>
@@ -495,11 +495,11 @@ const AdvancedAnalytics = ({ studyLogs, flashcards }) => {
       <div className="bg-gradient-to-br from-yellow-500/20 to-orange-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-8 shadow-2xl animate-slide-up" style={{animationDelay: '0.4s'}}>
         <h3 className="text-3xl font-bold text-white mb-8 flex items-center justify-center">
           <Star className="mr-3 text-yellow-400" size={32} />
-          ✨ Key Insights
+          Key Insights
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-            <h4 className="font-bold text-white mb-3 text-xl">🕐 Most Productive Time</h4>
+            <h4 className="font-bold text-white mb-3 text-xl">Most Productive Time</h4>
             <p className="text-white/90 font-medium">
               {(() => {
                 const maxHour = analytics.hourlyData.reduce((max, hour) => 
@@ -511,7 +511,7 @@ const AdvancedAnalytics = ({ studyLogs, flashcards }) => {
           </div>
           
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-            <h4 className="font-bold text-white mb-3 text-xl">🔥 Study Consistency</h4>
+            <h4 className="font-bold text-white mb-3 text-xl">Study Consistency</h4>
             <p className="text-white/90 font-medium">
               {analytics.metrics.currentStreak > 0 
                 ? `Great job! You're on a ${analytics.metrics.currentStreak}-day streak.`
@@ -521,7 +521,7 @@ const AdvancedAnalytics = ({ studyLogs, flashcards }) => {
           </div>
           
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-            <h4 className="font-bold text-white mb-3 text-xl">🎯 Focus Area</h4>
+            <h4 className="font-bold text-white mb-3 text-xl">Focus Area</h4>
             <p className="text-white/90 font-medium">
               {(() => {
                 const topSubject = analytics.subjectData.reduce((max, subject) => 
@@ -533,7 +533,7 @@ const AdvancedAnalytics = ({ studyLogs, flashcards }) => {
           </div>
           
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-            <h4 className="font-bold text-white mb-3 text-xl">📈 Learning Progress</h4>
+            <h4 className="font-bold text-white mb-3 text-xl">Learning Progress</h4>
             <p className="text-white/90 font-medium">
               {analytics.metrics.masteryRate >= 80 
                 ? "Excellent mastery rate! You're doing great."

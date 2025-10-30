@@ -1,4 +1,4 @@
-// 🎨 Customization Service
+// Customization Service
 // Manages unlockable themes, avatars, backgrounds, and visual customizations
 
 export const CUSTOMIZATION_CONFIG = {

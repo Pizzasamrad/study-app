@@ -76,7 +76,7 @@ const Header = ({
               <h1 className="text-2xl font-black text-amber-400 font-mono tracking-wider">
                 DUNGEON_MASTER
               </h1>
-              <p className="text-xs text-amber-300/80 font-mono">&gt; Knowledge Quest</p>
+              <p className="text-xs text-amber-300/80 font-mono">Knowledge Quest</p>
             </div>
           </div>
 
@@ -96,7 +96,7 @@ const Header = ({
               </div>
             </div>
             <div className="flex items-center space-x-2 bg-gradient-to-r from-amber-900/30 to-orange-900/30 px-4 py-2 rounded border border-amber-500/50">
-              <div className="w-4 h-4 text-amber-400">⚔️</div>
+              <div className="w-4 h-4 text-amber-400"></div>
               <div className="text-left">
                 <div className="text-sm font-bold text-amber-300 font-mono">{levelData.totalXP} XP</div>
                 <div className="text-xs text-amber-400/80 font-mono">{levelData.progress}% TO NEXT</div>

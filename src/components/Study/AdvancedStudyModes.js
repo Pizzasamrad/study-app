@@ -244,18 +244,18 @@ const AdvancedStudyModes = ({
   if (filteredCards.length === 0) {
     return (
       <div className="bg-gradient-to-br from-amber-900/20 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-8 shadow-2xl text-center">
-        <div className="text-6xl mb-4">🎉</div>
+          <div className="text-6xl mb-4"></div>
         <h3 className="text-2xl font-bold text-amber-400 mb-4 font-mono">NO SCROLLS TO STUDY!</h3>
         <p className="text-amber-300 mb-6 font-mono">
-          {studyMode === 'review' ? '&gt; ALL SCROLLS ARE UP TO DATE!' : 
-           studyMode === 'learn' ? '&gt; NO NEW SCROLLS TO LEARN!' : 
-           '&gt; NO SCROLLS AVAILABLE FOR TESTING!'}
+          {studyMode === 'review' ? 'ALL SCROLLS ARE UP TO DATE!' : 
+           studyMode === 'learn' ? 'NO NEW SCROLLS TO LEARN!' : 
+           'NO SCROLLS AVAILABLE FOR TESTING!'}
         </p>
         <button
           onClick={() => window.location.reload()}
           className="bg-gradient-to-r from-amber-600 to-orange-700 text-white px-6 py-3 rounded border-2 border-amber-400/50 font-mono font-bold hover:from-amber-700 hover:to-orange-800 transition-all duration-300"
         >
-          🔄 REFRESH
+          REFRESH
         </button>
       </div>
     );
@@ -269,7 +269,7 @@ const AdvancedStudyModes = ({
     return (
       <div className="bg-gradient-to-br from-amber-900/20 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-8 shadow-2xl">
         <div className="text-center">
-          <div className="text-6xl mb-4">🏆</div>
+          <div className="text-6xl mb-4"></div>
           <h3 className="text-3xl font-bold text-amber-400 mb-6 font-mono">QUEST COMPLETE!</h3>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -334,9 +334,9 @@ const AdvancedStudyModes = ({
     return (
       <div className="max-w-4xl mx-auto space-y-8">
         <div className="bg-gradient-to-br from-amber-900/20 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-8 shadow-2xl text-center">
-          <div className="text-6xl mb-4">🔄</div>
+          <div className="text-6xl mb-4"></div>
           <h3 className="text-2xl font-bold text-amber-400 mb-4 font-mono">LOADING QUEST...</h3>
-          <p className="text-amber-300 mb-6 font-mono">&gt; PREPARING YOUR STUDY MATERIALS</p>
+          <p className="text-amber-300 mb-6 font-mono">PREPARING YOUR STUDY MATERIALS</p>
         </div>
       </div>
     );
@@ -362,10 +362,10 @@ const AdvancedStudyModes = ({
               }}
               className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-6 py-3 rounded-2xl hover:from-gray-600 hover:to-gray-700 transition-all duration-300 font-bold shadow-lg hover:shadow-gray-500/50 transform hover:scale-105"
             >
-              ⬅️ Back to Dashboard
+              Back to Dashboard
             </button>
             <span className="text-white font-bold text-lg">
-              📊 {currentCardIndex + 1} of {studyCards.length} 🔥 (Due for Review)
+              {currentCardIndex + 1} of {studyCards.length} (Due for Review)
             </span>
           </div>
 
@@ -373,17 +373,17 @@ const AdvancedStudyModes = ({
           <div className="bg-gradient-to-br from-amber-900/20 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-12 min-h-96 flex flex-col justify-center items-center text-center shadow-2xl">
             <div className="mb-6 flex flex-wrap items-center justify-center gap-3">
               <span className="bg-gradient-to-r from-amber-600 to-orange-700 text-white px-4 py-2 rounded border-2 border-amber-400/50 font-mono font-bold">
-                📚 {currentCard.subject || 'GENERAL'}
+                {currentCard.subject || 'GENERAL'}
               </span>
               {currentCard.reviewCount > 0 && (
                 <span className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-full font-bold">
-                  ⭐ Reviewed {currentCard.reviewCount} times
+                  Reviewed {currentCard.reviewCount} times
                 </span>
               )}
             </div>
             
             <div className="text-2xl font-bold text-white mb-8 min-h-24 flex items-center justify-center leading-relaxed max-w-2xl">
-              {showAnswer ? `💡 ${currentCard.back}` : `❓ ${currentCard.front}`}
+              {showAnswer ? `${currentCard.back}` : `${currentCard.front}`}
             </div>
 
             {!showAnswer ? (
@@ -391,29 +391,29 @@ const AdvancedStudyModes = ({
                 onClick={() => setShowAnswer(true)}
                 className="bg-gradient-to-r from-amber-600 to-orange-700 text-white px-10 py-4 rounded border-2 border-amber-400/50 hover:from-amber-700 hover:to-orange-800 transition-all duration-300 font-mono font-bold text-lg shadow-lg hover:shadow-amber-500/50 transform hover:scale-105 mb-6"
               >
-                ✨ Show Answer
+                Show Answer
               </button>
             ) : (
               <div className="space-y-6">
-                <p className="text-white/80 mb-6 text-lg font-medium">🤔 How well did you remember this?</p>
+                <p className="text-white/80 mb-6 text-lg font-medium">How well did you remember this?</p>
                 <div className="flex flex-col sm:flex-row gap-4 mb-6">
                   <button 
                     onClick={() => handleReview(1)}
                     className="bg-gradient-to-r from-red-500 to-pink-600 text-white px-8 py-4 rounded-2xl hover:from-red-600 hover:to-pink-700 transition-all duration-300 font-bold shadow-lg hover:shadow-red-500/50 transform hover:scale-105"
                   >
-                    😰 Hard
+                    Hard
                   </button>
                   <button 
                     onClick={() => handleReview(3)}
                     className="bg-gradient-to-r from-yellow-500 to-orange-600 text-white px-8 py-4 rounded-2xl hover:from-yellow-600 hover:to-orange-700 transition-all duration-300 font-bold shadow-lg hover:shadow-yellow-500/50 transform hover:scale-105"
                   >
-                    🤔 Medium
+                    Medium
                   </button>
                   <button 
                     onClick={() => handleReview(5)}
                     className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-8 py-4 rounded-2xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 font-bold shadow-lg hover:shadow-green-500/50 transform hover:scale-105"
                   >
-                    😎 Easy
+                    Easy
                   </button>
                 </div>
               </div>
@@ -430,7 +430,7 @@ const AdvancedStudyModes = ({
                 disabled={currentCardIndex === 0}
                 className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-8 py-3 rounded-2xl hover:from-gray-600 hover:to-gray-700 transition-all duration-300 font-bold shadow-lg hover:shadow-gray-500/50 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                ⬅️ Previous
+                Previous
               </button>
               <button 
                 onClick={() => {
@@ -442,7 +442,7 @@ const AdvancedStudyModes = ({
                 disabled={currentCardIndex === studyCards.length - 1}
                 className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-8 py-3 rounded-2xl hover:from-gray-600 hover:to-gray-700 transition-all duration-300 font-bold shadow-lg hover:shadow-gray-500/50 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Next ➡️
+                Next
               </button>
             </div>
           </div>
@@ -463,9 +463,9 @@ const AdvancedStudyModes = ({
                   {studyMode === 'concept-explanation' && 'KNOWLEDGE QUEST'}
                 </h2>
                 <p className="text-amber-300 font-mono">
-                  {studyMode === 'active-recall' && '&gt; TYPE YOUR ANSWERS TO STRENGTHEN MEMORY'}
-                  {studyMode === 'cloze' && '&gt; FILL IN THE BLANKS TO TEST UNDERSTANDING'}
-                  {studyMode === 'concept-explanation' && '&gt; EXPLAIN WHY THE ANSWER IS CORRECT'}
+                  {studyMode === 'active-recall' && 'TYPE YOUR ANSWERS TO STRENGTHEN MEMORY'}
+                  {studyMode === 'cloze' && 'FILL IN THE BLANKS TO TEST UNDERSTANDING'}
+                  {studyMode === 'concept-explanation' && 'EXPLAIN WHY THE ANSWER IS CORRECT'}
                 </p>
               </div>
               

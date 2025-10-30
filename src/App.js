@@ -24,11 +24,11 @@ const StudyApp = () => {
   const [isTimerActive, setIsTimerActive] = useState(false);
   const [blurts, setBlurts] = useState([]);
   
-  // 🔥 NEW: Celebration state
+  // NEW: Celebration state
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrationData, setCelebrationData] = useState(null);
   
-  // 🔥 NEW: Authentication state
+  // NEW: Authentication state
   const [user, setUser] = useState(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -192,7 +192,7 @@ const StudyApp = () => {
     }
   };
 
-  // 🔥 NEW: Trigger celebration
+  // NEW: Trigger celebration
   const triggerCelebration = useCallback((type, data) => {
     setCelebrationData({ type, ...data });
     setShowCelebration(true);
@@ -330,7 +330,7 @@ const StudyApp = () => {
     setTimerInitialDuration(0);
   };
 
-  // 🚀 NEW: Simple Category-based Study System
+  // NEW: Simple Category-based Study System
   const getCardsByCategory = (category) => {
     if (category === 'all') {
       return flashcards;
@@ -343,7 +343,7 @@ const StudyApp = () => {
     return categories;
   };
 
-  // 🚀 Enhanced Flashcard Management with Celebrations and Cloud Sync
+  // Enhanced Flashcard Management with Celebrations and Cloud Sync
   const addFlashcard = async (front, back, subject, highlightedWords = []) => {
     try {
       const newCard = {
@@ -404,7 +404,7 @@ const StudyApp = () => {
     }
   };
 
-  // 🚀 Simple flashcard review with celebrations
+  // Simple flashcard review with celebrations
   const reviewFlashcard = async (id, difficulty) => {
     const card = flashcards.find(c => c.id === id);
     if (!card) return;
@@ -559,7 +559,7 @@ const StudyApp = () => {
 
 
 
-  // 🔥 NEW: Celebration Modal Component
+  // NEW: Celebration Modal Component
   const CelebrationModal = ({ show, data, onClose }) => {
     if (!show || !data) return null;
 
@@ -592,7 +592,7 @@ const StudyApp = () => {
           </div>
           
           <h2 className="text-3xl font-black bg-gradient-to-r from-yellow-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent mb-4 animate-gradient-x">
-            🎉 Amazing! 🎉
+            Amazing!
           </h2>
           
           <p className="text-white/90 mb-8 leading-relaxed text-lg font-medium">{data.message}</p>
@@ -601,7 +601,7 @@ const StudyApp = () => {
             onClick={onClose}
             className="bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-white px-10 py-4 rounded-2xl font-bold text-lg hover:from-pink-600 hover:via-purple-600 hover:to-indigo-600 transition-all duration-300 shadow-2xl hover:shadow-pink-500/50 transform hover:scale-110 hover:-translate-y-1"
           >
-            ✨ Awesome! ✨
+            Awesome!
           </button>
         </div>
       </div>
@@ -639,7 +639,7 @@ const StudyApp = () => {
           }}></div>
         </div>
       </div>
-      {/* 🔥 NEW: Celebration Modal */}
+      {/* NEW: Celebration Modal */}
       <CelebrationModal 
         show={showCelebration} 
         data={celebrationData} 
@@ -795,7 +795,7 @@ const StudyApp = () => {
   );
 };
 
-// 🚀 ENHANCED: Flashcards Component with Category-based Study
+// ENHANCED: Flashcards Component with Category-based Study
 const FlashcardsTab = ({ flashcards, availableCategories, onAddFlashcard, onUpdateFlashcard, onDeleteFlashcard, onReviewFlashcard }) => {
   const [showForm, setShowForm] = useState(false);
   const [editingCard, setEditingCard] = useState(null);
@@ -1060,7 +1060,7 @@ const FlashcardsTab = ({ flashcards, availableCategories, onAddFlashcard, onUpda
               }}
               className="bg-gradient-to-r from-amber-600/80 to-orange-600/80 backdrop-blur-sm text-white px-6 py-3 rounded border-2 border-amber-400/50 hover:from-amber-700/90 hover:to-orange-700/90 transition-all duration-300 font-mono font-bold shadow-lg hover:shadow-amber-500/50 transform hover:scale-105 flex items-center"
             >
-              ← 🏰 EXIT DUNGEON
+              EXIT DUNGEON
             </button>
             <div className="text-center">
               <div className="text-amber-400 font-mono font-bold text-xl">
@@ -1074,9 +1074,9 @@ const FlashcardsTab = ({ flashcards, availableCategories, onAddFlashcard, onUpda
             {/* Study Mode Switcher */}
             <div className="flex space-x-2">
               {[
-                { id: 'flashcard', name: 'EXAMINE', icon: '⚔️' },
-                { id: 'cloze', name: 'DECIPHER', icon: '🔍' },
-                { id: 'concept', name: 'RECALL', icon: '🧠' }
+                { id: 'flashcard', name: 'EXAMINE', icon: '' },
+                { id: 'cloze', name: 'DECIPHER', icon: '' },
+                { id: 'concept', name: 'RECALL', icon: '' }
               ].map(mode => (
                 <button
                   key={mode.id}
@@ -1145,7 +1145,7 @@ const FlashcardsTab = ({ flashcards, availableCategories, onAddFlashcard, onUpda
               onClick={() => setShowAnswer(true)}
                       className="bg-gradient-to-r from-amber-600 to-orange-600 text-white px-12 py-6 rounded border-2 border-amber-400/50 hover:from-amber-700 hover:to-orange-700 transition-all duration-300 font-mono font-bold text-xl shadow-2xl hover:shadow-amber-500/50 transform hover:scale-105 relative z-10"
             >
-                      🔍 REVEAL SECRET
+                      REVEAL SECRET
             </button>
           ) : (
                     <div className="space-y-8 relative z-10">
@@ -1155,19 +1155,19 @@ const FlashcardsTab = ({ flashcards, availableCategories, onAddFlashcard, onUpda
                   onClick={() => handleReview('hard')}
                           className="bg-gradient-to-r from-red-600 to-red-700 text-white px-10 py-6 rounded border-2 border-red-400/50 hover:from-red-700 hover:to-red-800 transition-all duration-300 font-mono font-bold text-lg shadow-2xl hover:shadow-red-500/50 transform hover:scale-105"
                 >
-                          ⚔️ CHALLENGING
+                          CHALLENGING
                 </button>
                 <button 
                   onClick={() => handleReview('medium')}
                           className="bg-gradient-to-r from-amber-600 to-orange-600 text-white px-10 py-6 rounded border-2 border-amber-400/50 hover:from-amber-700 hover:to-orange-700 transition-all duration-300 font-mono font-bold text-lg shadow-2xl hover:shadow-amber-500/50 transform hover:scale-105"
                 >
-                          🛡️ MODERATE
+                          MODERATE
                 </button>
                 <button 
                   onClick={() => handleReview('easy')}
                           className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-10 py-6 rounded border-2 border-green-400/50 hover:from-green-700 hover:to-emerald-700 transition-all duration-300 font-mono font-bold text-lg shadow-2xl hover:shadow-green-500/50 transform hover:scale-105"
                 >
-                          🏆 MASTERED
+                          MASTERED
                 </button>
               </div>
             </div>
@@ -1184,7 +1184,7 @@ const FlashcardsTab = ({ flashcards, availableCategories, onAddFlashcard, onUpda
                   
                   {/* Cloze Deletion Info */}
                   <div className="bg-blue-500/20 border border-blue-400/30 rounded-lg p-4 mb-6 max-w-2xl mx-auto">
-                    <div className="text-blue-200 text-sm font-medium mb-1">💡 Cloze Deletion Tip:</div>
+                    <div className="text-blue-200 text-sm font-medium mb-1">Cloze Deletion Tip:</div>
                     <div className="text-blue-100 text-xs">
                       This card has {card.highlightedWords?.length || 0} highlighted words. 
                       One word is randomly selected to be blanked out each time you study this card.
@@ -1214,13 +1214,13 @@ const FlashcardsTab = ({ flashcards, availableCategories, onAddFlashcard, onUpda
                     <div className="space-y-8 relative z-10">
                       {userAnswer.toLowerCase().trim() === clozeAnswer.toLowerCase().trim() ? (
                         <div className="text-center">
-                          <div className="text-6xl mb-4">🎉</div>
+                          <div className="text-6xl mb-4"></div>
                           <div className="text-3xl font-bold text-green-400 mb-2">Correct!</div>
                           <div className="text-xl text-white/80">Great job! You got it right!</div>
                         </div>
                       ) : (
                         <div className="text-center">
-                          <div className="text-6xl mb-4">💭</div>
+                          <div className="text-6xl mb-4"></div>
                           <div className="text-3xl font-bold text-red-400 mb-2">Not quite right</div>
                           <div className="text-xl text-white/80 mb-4">Your answer: <span className="text-red-300">{userAnswer}</span></div>
                           <div className="text-xl text-white/80">Correct answer: <span className="text-yellow-400 font-bold">{clozeAnswer}</span></div>
@@ -1231,19 +1231,19 @@ const FlashcardsTab = ({ flashcards, availableCategories, onAddFlashcard, onUpda
                           onClick={() => handleReview('hard')}
                           className="bg-gradient-to-r from-red-500 to-pink-600 text-white px-10 py-6 rounded-2xl hover:from-red-600 hover:to-pink-700 transition-all duration-300 font-bold text-lg shadow-2xl hover:shadow-red-500/50 transform hover:scale-105"
                         >
-                          😰 Hard
+                          Hard
                         </button>
                         <button 
                           onClick={() => handleReview('medium')}
                           className="bg-gradient-to-r from-yellow-500 to-orange-600 text-white px-10 py-6 rounded-2xl hover:from-yellow-600 hover:to-orange-700 transition-all duration-300 font-bold text-lg shadow-2xl hover:shadow-yellow-500/50 transform hover:scale-105"
                         >
-                          😐 Medium
+                          Medium
                         </button>
                         <button 
                           onClick={() => handleReview('easy')}
                           className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-10 py-6 rounded-2xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 font-bold text-lg shadow-2xl hover:shadow-green-500/50 transform hover:scale-105"
                         >
-                          😊 Easy
+                          Easy
                         </button>
                       </div>
                     </div>
@@ -1285,19 +1285,19 @@ const FlashcardsTab = ({ flashcards, availableCategories, onAddFlashcard, onUpda
                           onClick={() => handleReview('hard')}
                           className="bg-gradient-to-r from-red-500 to-pink-600 text-white px-10 py-6 rounded-2xl hover:from-red-600 hover:to-pink-700 transition-all duration-300 font-bold text-lg shadow-2xl hover:shadow-red-500/50 transform hover:scale-105"
                         >
-                          😰 Hard
+                          Hard
                         </button>
                         <button 
                           onClick={() => handleReview('medium')}
                           className="bg-gradient-to-r from-yellow-500 to-orange-600 text-white px-10 py-6 rounded-2xl hover:from-yellow-600 hover:to-orange-700 transition-all duration-300 font-bold text-lg shadow-2xl hover:shadow-yellow-500/50 transform hover:scale-105"
                         >
-                          😐 Medium
+                          Medium
                         </button>
                         <button 
                           onClick={() => handleReview('easy')}
                           className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-10 py-6 rounded-2xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 font-bold text-lg shadow-2xl hover:shadow-green-500/50 transform hover:scale-105"
                         >
-                          😊 Easy
+                          Easy
                         </button>
                       </div>
                     </div>
@@ -1311,13 +1311,13 @@ const FlashcardsTab = ({ flashcards, availableCategories, onAddFlashcard, onUpda
               onClick={prevCard} 
                   className="bg-gradient-to-r from-amber-600/80 to-orange-600/80 backdrop-blur-sm text-white px-8 py-4 rounded border-2 border-amber-400/50 hover:from-amber-700/90 hover:to-orange-700/90 transition-all duration-300 font-mono font-bold shadow-lg hover:shadow-amber-500/50 transform hover:scale-105"
             >
-                  ← PREVIOUS CHAMBER
+                  PREVIOUS CHAMBER
             </button>
             <button 
               onClick={nextCard} 
                   className="bg-gradient-to-r from-amber-600/80 to-orange-600/80 backdrop-blur-sm text-white px-8 py-4 rounded border-2 border-amber-400/50 hover:from-amber-700/90 hover:to-orange-700/90 transition-all duration-300 font-mono font-bold shadow-lg hover:shadow-amber-500/50 transform hover:scale-105"
             >
-                  NEXT CHAMBER →
+                  NEXT CHAMBER
             </button>
               </div>
             </div>
@@ -1395,7 +1395,7 @@ const FlashcardsTab = ({ flashcards, availableCategories, onAddFlashcard, onUpda
           >
             {subjects.map(subject => (
               <option key={subject} value={subject} className="bg-gray-800 text-white">
-                {subject === 'all' ? '📚 All Subjects' : `📖 ${subject}`}
+                {subject === 'all' ? 'All Subjects' : `${subject}`}
               </option>
             ))}
           </select>
@@ -1451,12 +1451,12 @@ const FlashcardsTab = ({ flashcards, availableCategories, onAddFlashcard, onUpda
                   </p>
                   
                   <div className="bg-blue-500/20 border border-blue-400/30 rounded-lg p-4 mb-4">
-                    <div className="text-blue-200 text-sm font-medium mb-2">📝 How Cloze Deletion Works:</div>
+                    <div className="text-blue-200 text-sm font-medium mb-2">How Cloze Deletion Works:</div>
                     <div className="text-blue-100 text-xs space-y-1">
-                      <div>• Highlight multiple words to give cloze deletion more options</div>
-                      <div>• Each study session will randomly pick ONE highlighted word to blank out</div>
-                      <div>• This keeps the exercise focused while giving variety across sessions</div>
-                      <div>• Perfect for learning key terms, dates, names, or important concepts!</div>
+                      <div>- Highlight multiple words to give cloze deletion more options</div>
+                      <div>- Each study session will randomly pick ONE highlighted word to blank out</div>
+                      <div>- This keeps the exercise focused while giving variety across sessions</div>
+                      <div>- Perfect for learning key terms, dates, names, or important concepts!</div>
                     </div>
                   </div>
                   
@@ -1582,7 +1582,7 @@ const FlashcardsTab = ({ flashcards, availableCategories, onAddFlashcard, onUpda
 
       {filteredCards.length === 0 && !showForm && (
         <div className="bg-gradient-to-br from-gray-500/20 to-gray-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-12 shadow-2xl text-center animate-bounce-in">
-          <div className="text-6xl mb-6">📚</div>
+          <div className="text-6xl mb-6"></div>
           <p className="text-white/80 mb-6 text-xl font-medium">
             {flashcards.length === 0 
               ? "No flashcards yet. Create your first card to get started!" 
@@ -1674,7 +1674,7 @@ const PomodoroTab = ({ time, isActive, onToggle, onReset, formatTime, onAddStudy
             }`}
           >
             {isActive ? <Pause className="mr-3" size={24} /> : <Play className="mr-3" size={24} />}
-            {isActive ? '⏸️ PAUSE QUEST' : '⚔️ BEGIN QUEST'}
+            {isActive ? 'PAUSE QUEST' : 'BEGIN QUEST'}
           </button>
           
           <button
@@ -1682,7 +1682,7 @@ const PomodoroTab = ({ time, isActive, onToggle, onReset, formatTime, onAddStudy
             className="flex items-center justify-center px-10 py-5 rounded border-2 border-amber-400/50 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-mono font-bold text-xl hover:from-amber-700 hover:to-orange-700 transition-all duration-300 shadow-2xl hover:shadow-amber-500/50 transform hover:scale-105"
           >
             <RotateCcw className="mr-3" size={24} />
-            🔄 RESTART
+            RESTART
           </button>
         </div>
 
@@ -1690,7 +1690,7 @@ const PomodoroTab = ({ time, isActive, onToggle, onReset, formatTime, onAddStudy
           onClick={() => setShowLogForm(true)}
           className="bg-gradient-to-r from-amber-600 to-orange-600 text-white px-8 py-4 rounded border-2 border-amber-400/50 hover:from-amber-700 hover:to-orange-700 transition-all duration-300 font-mono font-bold shadow-lg hover:shadow-amber-500/50 transform hover:scale-105"
         >
-          📜 RECORD QUEST
+          RECORD QUEST
         </button>
       </div>
 
@@ -1886,7 +1886,7 @@ const BlurtsTab = ({ blurts, onAddBlurt, onDeleteBlurt }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredBlurts.length === 0 ? (
           <div className="col-span-full bg-gradient-to-br from-gray-500/20 to-gray-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-12 shadow-2xl text-center animate-bounce-in">
-            <div className="text-6xl mb-6">📝</div>
+            <div className="text-6xl mb-6"></div>
             <p className="text-white/80 mb-6 text-xl font-medium">
               {blurts.length === 0 
                 ? "No brain blurts yet. Start capturing your brilliant thoughts!" 

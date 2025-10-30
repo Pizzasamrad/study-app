@@ -114,7 +114,7 @@ const DevTestPanel = ({
                 onClick={() => setIsOpen(false)}
                 className="text-white/60 hover:text-white transition-colors"
               >
-                ✕
+                x
               </button>
             </div>
 
@@ -157,7 +157,7 @@ const DevTestPanel = ({
                       className="bg-white/10 rounded-xl p-4 text-left hover:bg-white/20 transition-all duration-300 border border-white/20"
                     >
                       <div className="font-bold text-white">{preset.name}</div>
-                      <div className="text-white/60 text-sm">Level {preset.level} • {preset.xp.toLocaleString()} XP</div>
+                      <div className="text-white/60 text-sm">Level {preset.level} - {preset.xp.toLocaleString()} XP</div>
                     </button>
                   ))}
                 </div>
@@ -278,7 +278,7 @@ const DevTestPanel = ({
                     >
                       <div className="font-bold text-white">{preset.name}</div>
                       <div className="text-white/60 text-sm">
-                        {preset.stats.totalStudyTime}min • {preset.stats.totalCardsCreated} cards • {preset.stats.currentStreak} streak
+                        {preset.stats.totalStudyTime}min - {preset.stats.totalCardsCreated} cards - {preset.stats.currentStreak} streak
                       </div>
                     </button>
                   ))}

@@ -125,7 +125,7 @@ const CustomizationTab = ({
       {/* Header */}
       <div className="text-center mb-8">
         <h2 className="text-4xl font-black bg-gradient-to-r from-white via-purple-200 to-pink-200 bg-clip-text text-transparent mb-4">
-          Customize Your Experience 🎨
+          Customize Your Experience
         </h2>
         <p className="text-white/80 text-lg">
           Unlock and personalize your study environment as you progress!

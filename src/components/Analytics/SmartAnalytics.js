@@ -97,7 +97,7 @@ const SmartAnalytics = ({ studyLogs, flashcards, blurts }) => {
             QUEST ANALYTICS
           </h2>
           <p className="text-amber-300 text-xl font-mono">
-            &gt; TRACK YOUR QUEST SESSIONS AND TIME
+            TRACK YOUR QUEST SESSIONS AND TIME
           </p>
         </div>
       </div>
@@ -136,7 +136,7 @@ const SmartAnalytics = ({ studyLogs, flashcards, blurts }) => {
           </div>
           <h3 className="text-xl font-bold text-amber-400 mb-2 font-mono">QUEST TIME</h3>
           <p className="text-amber-300 text-sm font-mono">
-            {analytics.totalStudyTime > 0 ? '&gt; GREAT DEDICATION TO LEARNING!' : '&gt; BEGIN YOUR FIRST QUEST'}
+            {analytics.totalStudyTime > 0 ? 'GREAT DEDICATION TO LEARNING!' : 'BEGIN YOUR FIRST QUEST'}
           </p>
         </div>
 
@@ -303,7 +303,7 @@ const SmartAnalytics = ({ studyLogs, flashcards, blurts }) => {
         </h3>
         {studyLogs.length === 0 ? (
           <div className="text-center py-12">
-            <div className="text-6xl mb-6">📚</div>
+            <div className="text-6xl mb-6"></div>
             <p className="text-white/80 mb-4 text-xl font-medium">No study sessions logged yet</p>
             <p className="text-white/60">Start studying to see your progress here!</p>
           </div>
@@ -328,7 +328,7 @@ const SmartAnalytics = ({ studyLogs, flashcards, blurts }) => {
                       </span>
                     </div>
                     {log.notes && (
-                      <p className="text-white/70 mt-3 italic text-sm">💭 {log.notes}</p>
+                      <p className="text-white/70 mt-3 italic text-sm">{log.notes}</p>
                     )}
                   </div>
                   <div className="text-right">

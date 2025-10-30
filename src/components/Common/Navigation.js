@@ -9,7 +9,7 @@ const Navigation = ({ activeTab, onTabChange }) => {
       icon: Home, 
       color: 'from-orange-500 to-red-500', 
       bgColor: 'from-orange-500/10 to-red-500/10',
-      emoji: '🏠',
+      emoji: '',
       description: 'Overview & Quick Actions'
     },
     { 
@@ -18,7 +18,7 @@ const Navigation = ({ activeTab, onTabChange }) => {
       icon: Brain, 
       color: 'from-amber-600 to-orange-700', 
       bgColor: 'from-amber-600/10 to-orange-700/10',
-      emoji: '🧠',
+      emoji: '',
       description: 'Create & Review Cards'
     },
     { 
@@ -27,7 +27,7 @@ const Navigation = ({ activeTab, onTabChange }) => {
       icon: Clock, 
       color: 'from-green-500 to-teal-500', 
       bgColor: 'from-green-500/10 to-teal-500/10',
-      emoji: '⏰',
+      emoji: '',
       description: 'Focus Timer'
     },
     { 
@@ -36,7 +36,7 @@ const Navigation = ({ activeTab, onTabChange }) => {
       icon: BarChart3, 
       color: 'from-amber-600 to-orange-700', 
       bgColor: 'from-amber-600/10 to-orange-700/10',
-      emoji: '📊',
+      emoji: '',
       description: 'Progress & Insights'
     },
     { 
@@ -45,7 +45,7 @@ const Navigation = ({ activeTab, onTabChange }) => {
       icon: Palette, 
       color: 'from-pink-500 to-purple-500', 
       bgColor: 'from-pink-500/10 to-purple-500/10',
-      emoji: '🎨',
+      emoji: '',
       description: 'Unlock & Personalize'
     },
     { 
@@ -54,7 +54,7 @@ const Navigation = ({ activeTab, onTabChange }) => {
       icon: Edit3, 
       color: 'from-yellow-500 to-orange-500', 
       bgColor: 'from-yellow-500/10 to-orange-500/10',
-      emoji: '💡',
+      emoji: '',
       description: 'Quick Notes & Ideas'
     }
   ];
@@ -98,7 +98,7 @@ const Navigation = ({ activeTab, onTabChange }) => {
                 }`}>
                   <Icon size={20} />
                 </div>
-                <span className="text-lg">{emoji}</span>
+                {/* emoji removed */}
               </div>
               
               {/* Label */}

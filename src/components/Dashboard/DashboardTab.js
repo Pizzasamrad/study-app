@@ -65,7 +65,7 @@ const DashboardTab = ({
               </div>
             </div>
             <h3 className="text-xl font-bold text-amber-400 mb-2 flex items-center space-x-2 font-mono">
-              <span>⚔️</span>
+              <span></span>
               <span>KNOWLEDGE_VAULT</span>
             </h3>
             <p className="text-amber-300 mb-4 text-sm font-mono">
@@ -106,7 +106,7 @@ const DashboardTab = ({
               </div>
             </div>
             <h3 className="text-xl font-bold text-amber-400 mb-2 flex items-center space-x-2 font-mono">
-              <span>⏰</span>
+              <span></span>
               <span>QUEST LOG</span>
             </h3>
             <p className="text-amber-300 mb-4 text-sm font-mono">
@@ -145,7 +145,7 @@ const DashboardTab = ({
               </div>
             </div>
             <h3 className="text-xl font-bold text-amber-400 mb-2 flex items-center space-x-2 font-mono">
-              <span>📊</span>
+              <span></span>
               <span>QUEST STATS</span>
             </h3>
             <p className="text-amber-300 mb-4 text-sm font-mono">
@@ -184,7 +184,7 @@ const DashboardTab = ({
               </div>
             </div>
             <h3 className="text-xl font-bold text-amber-400 mb-2 flex items-center space-x-2 font-mono">
-              <span>🎯</span>
+              <span></span>
               <span>ADVANCED QUEST</span>
             </h3>
             <p className="text-amber-300 mb-4 text-sm font-mono">
@@ -290,7 +290,7 @@ const DashboardTab = ({
           </h3>
           {studyLogs.length === 0 ? (
             <div className="text-center py-8">
-              <div className="text-6xl mb-4">📖</div>
+              <div className="text-6xl mb-4"></div>
               <p className="text-white/80 mb-4">No study sessions logged yet.</p>
               <p className="text-white/60 text-sm">Start studying to track your progress!</p>
             </div>
@@ -305,10 +305,10 @@ const DashboardTab = ({
                         {log.subject}
                       </h4>
                       <p className="text-white/80 font-medium text-sm">
-                        ⏰ {log.duration} minutes - {log.date} at {log.time}
+                        {log.duration} minutes - {log.date} at {log.time}
                       </p>
                       {log.notes && (
-                        <p className="text-white/70 mt-2 italic text-sm">💭 {log.notes}</p>
+                        <p className="text-white/70 mt-2 italic text-sm">{log.notes}</p>
                       )}
                     </div>
                     <div className="text-right">
