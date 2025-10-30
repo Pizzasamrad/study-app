@@ -10,9 +10,8 @@ import Header from './components/Common/Header';
 import Navigation from './components/Common/Navigation';
 import DashboardTab from './components/Dashboard/DashboardTab';
 import * as storageService from './services/storageService';
-import { getBackgroundClasses } from './services/customizationService';
 import * as userDataService from './services/userDataService';
-import { calculateTotalXP, calculateLevel } from './services/levelService';
+import { calculateTotalXP, calculateLevel, getAchievements, getLevelStats } from './services/levelService';
 import './animations.css';
 
 const StudyApp = () => {
@@ -41,16 +40,94 @@ const StudyApp = () => {
       backgrounds: 'default'
   });
 
-  // Dev testing state (for quick testing)
-  const [devLevel, setDevLevel] = useState(1);
-  const [devAchievements, setDevAchievements] = useState([]);
-  const [devStats, setDevStats] = useState({
-    totalStudyTime: 0,
-    totalCardsCreated: 0,
-    totalCardsReviewed: 0,
-    currentStreak: 0,
-    longestStreak: 0
-  });
+  // User level and stats (calculated from actual data)
+  const [userLevelData, setUserLevelData] = useState(null);
+
+  // Calculate streak from study logs
+  const calculateStreak = (studyLogs) => {
+    if (!Array.isArray(studyLogs) || studyLogs.length === 0) {
+      return { current: 0, longest: 0 };
+    }
+
+    // Normalize, validate and sort logs by date (newest first)
+    const normalizedDates = studyLogs
+      .filter(log => log && log.timestamp)
+      .map(log => new Date(log.timestamp))
+      .filter(d => !isNaN(d.getTime()))
+      .map(d => {
+        d.setHours(0, 0, 0, 0);
+        return d;
+      })
+      .sort((a, b) => b - a);
+
+    if (normalizedDates.length === 0) {
+      return { current: 0, longest: 0 };
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    let currentStreak = 0;
+    let longestStreak = 0;
+    let tempStreak = 0;
+    let lastStudyDate = null;
+
+    for (const logDate of normalizedDates) {
+      if (lastStudyDate === null) {
+        // First valid date encountered
+        tempStreak = 1;
+        if (logDate.getTime() === today.getTime() || logDate.getTime() === yesterday.getTime()) {
+          currentStreak = 1;
+        }
+      } else {
+        const daysDiff = Math.round((lastStudyDate.getTime() - logDate.getTime()) / (1000 * 60 * 60 * 24));
+
+        if (daysDiff === 0) {
+          // Multiple logs on the same day; ignore without changing the streak count
+        } else if (daysDiff === 1) {
+          // Consecutive day
+          tempStreak += 1;
+          if (logDate.getTime() === today.getTime() || logDate.getTime() === yesterday.getTime()) {
+            currentStreak = tempStreak;
+          }
+        } else if (daysDiff > 1) {
+          // Gap detected; finalize current run and start a new one from this day
+          longestStreak = Math.max(longestStreak, tempStreak);
+          tempStreak = 1;
+          if (logDate.getTime() === today.getTime() || logDate.getTime() === yesterday.getTime()) {
+            currentStreak = 1;
+          }
+        }
+      }
+
+      lastStudyDate = logDate;
+    }
+
+    longestStreak = Math.max(longestStreak, tempStreak);
+
+    return { current: currentStreak, longest: longestStreak };
+  };
+
+  // Calculate user level and stats whenever data changes
+  useEffect(() => {
+    if (studyLogs || flashcards || blurts) {
+      // Calculate current streak from study logs
+      const streakData = calculateStreak(studyLogs);
+      
+      const levelData = getLevelStats(studyLogs, flashcards, blurts, streakData);
+      setUserLevelData(levelData);
+      
+      // Save updated streak data
+      if (streakData.current !== (userLevelData?.stats?.currentStreak || 0)) {
+        userDataService.saveUserProgress({ 
+          currentStreak: streakData.current, 
+          longestStreak: streakData.longest 
+        }).catch(console.error);
+      }
+    }
+  }, [studyLogs, flashcards, blurts]);
 
   // Initialize storage mode and auth state
   useEffect(() => {
@@ -114,49 +191,6 @@ const StudyApp = () => {
     }
   };
 
-  // 🔥 NEW: Calculate study streak with milestone detection
-  const calculateStreak = useCallback((logs) => {
-    if (logs.length === 0) return { current: 0, milestone: null };
-
-    const sortedLogs = logs.sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date));
-    let currentStreak = 0;
-    let lastDate = new Date().toDateString();
-    
-    // Check if we studied today
-    const hasStudiedToday = sortedLogs.some(log => {
-      const logDate = new Date(log.createdAt || Date.now()).toDateString();
-      return logDate === new Date().toDateString();
-    });
-    
-    if (hasStudiedToday) currentStreak = 1;
-    
-    for (const log of sortedLogs) {
-      const logDate = new Date(log.createdAt || Date.now()).toDateString();
-      if (logDate !== lastDate) {
-        const daysDiff = Math.floor((new Date(lastDate) - new Date(logDate)) / (1000 * 60 * 60 * 24));
-        if (daysDiff === 1) {
-          currentStreak++;
-          lastDate = logDate;
-        } else if (daysDiff > 1) {
-          break;
-        }
-      }
-    }
-
-    // Check for milestone achievements
-    const milestones = [3, 7, 14, 30, 50, 100];
-    let milestone = null;
-    
-    for (const m of milestones) {
-      if (currentStreak === m) {
-        milestone = m;
-        break;
-      }
-    }
-
-    return { current: currentStreak, milestone };
-  }, []);
-
   // 🔥 NEW: Trigger celebration
   const triggerCelebration = useCallback((type, data) => {
     setCelebrationData({ type, ...data });
@@ -192,15 +226,7 @@ const StudyApp = () => {
         setStudyLogs(logs);
         setBlurts(blurtData);
         
-        // Load user progress and stats
-        if (userProgress) {
-          setDevStats(userProgress);
-        }
-        
-        // Load achievements
-        if (achievements) {
-          setDevAchievements(achievements.achievements || []);
-        }
+        // User progress is now calculated from study data
         
         // Load customizations
         if (customizations) {
@@ -400,7 +426,7 @@ const StudyApp = () => {
     if (newReviewCount === 1) {
       triggerCelebration('first_review', { message: 'First review completed! Your brain is already getting stronger!' });
     } else if (newReviewCount === 10) {
-      triggerCelebration('review_master', { message: '10 reviews on this card - you\'re a memory master!' });
+              triggerCelebration('review_master', { message: '10 reviews on this card - you\'re a memory master!' });
     }
   };
 
@@ -431,14 +457,9 @@ const StudyApp = () => {
           duration,
           total: 1,
           xpEarned: duration * 10 // 10 XP per minute
-        }, devStats);
+        });
         
-        // Update dev stats for XP display
-        setDevStats(prev => ({
-          ...prev,
-          totalStudyTime: prev.totalStudyTime + duration,
-          totalSessions: prev.totalSessions + 1
-        }));
+        // Level data will be automatically recalculated by useEffect
       } catch (error) {
         console.error('Error updating user stats:', error);
       }
@@ -550,7 +571,7 @@ const StudyApp = () => {
 
     return (
       <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 backdrop-blur-lg">
-        <div className="bg-gradient-to-br from-purple-900/90 to-indigo-900/90 backdrop-blur-xl rounded-3xl p-8 max-w-md mx-4 text-center shadow-2xl border border-white/20 transform transition-all duration-500 animate-float">
+        <div className="bg-gradient-to-br from-amber-900/90 to-black/90 backdrop-blur-xl rounded-lg p-8 max-w-md mx-4 text-center shadow-2xl border-2 border-amber-400/50 transform transition-all duration-500 animate-float">
           {/* Celebration particles */}
           <div className="absolute inset-0 overflow-hidden rounded-3xl">
             <div className="absolute top-4 left-4 w-2 h-2 bg-yellow-400 rounded-full animate-ping"></div>
@@ -583,12 +604,35 @@ const StudyApp = () => {
   };
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${getBackgroundClasses(selectedCustomizations.backgrounds)} relative overflow-hidden`}>
-      {/* Animated Background Elements */}
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black relative overflow-hidden">
+      {/* Dungeon Crawler Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-pink-400 to-purple-600 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-yellow-400 to-pink-600 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
-        <div className="absolute top-40 left-40 w-80 h-80 bg-gradient-to-br from-blue-400 to-green-600 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
+        {/* Dungeon torch flames */}
+        <div className="absolute top-20 left-10 w-4 h-4 bg-amber-400 opacity-80 animate-pixel-flicker"></div>
+        <div className="absolute top-40 right-20 w-3 h-3 bg-orange-400 opacity-70 animate-pixel-flicker animation-delay-1000"></div>
+        <div className="absolute top-60 left-1/4 w-2 h-2 bg-red-400 opacity-90 animate-pixel-flicker animation-delay-1500"></div>
+        <div className="absolute top-80 right-1/3 w-3 h-3 bg-yellow-400 opacity-80 animate-pixel-flicker animation-delay-2000"></div>
+        <div className="absolute bottom-40 left-1/3 w-2 h-2 bg-amber-400 opacity-70 animate-pixel-flicker animation-delay-3000"></div>
+        <div className="absolute bottom-60 right-10 w-4 h-4 bg-orange-400 opacity-80 animate-pixel-flicker animation-delay-1000"></div>
+        
+        {/* Dungeon stone pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute inset-0" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M0 0h20v20H0zM20 20h20v20H20z'/%3E%3C/g%3E%3C/svg%3E")`,
+          }}></div>
+        </div>
+        
+        {/* Dungeon elements */}
+        <div className="absolute top-32 right-1/4 w-8 h-8 border-2 border-amber-400/60 rotate-45 animate-spin animation-delay-3000 animate-retro-glow"></div>
+        <div className="absolute bottom-32 left-1/4 w-6 h-6 border-2 border-orange-400/60 rotate-12 animate-spin animation-delay-1500 animate-retro-glow"></div>
+        <div className="absolute top-1/3 right-1/3 w-4 h-4 bg-amber-400/80 animate-pixel-flicker"></div>
+        
+        {/* Dungeon atmosphere */}
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute inset-0" style={{
+            backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,165,0,0.1) 2px, rgba(255,165,0,0.1) 4px)`,
+          }}></div>
+        </div>
       </div>
       {/* 🔥 NEW: Celebration Modal */}
       <CelebrationModal 
@@ -615,12 +659,21 @@ const StudyApp = () => {
           onLogout={handleLogout}
           storageMode={storageMode}
           onStorageModeChange={(mode) => setStorageModeState(mode)}
-          streakData={{ current: devStats.currentStreak, longest: devStats.longestStreak }}
+          streakData={{ current: userLevelData?.stats?.currentStreak || 0, longest: userLevelData?.stats?.longestStreak || 0 }}
           studyLogs={studyLogs}
           flashcards={flashcards}
           blurts={blurts}
           selectedCustomizations={selectedCustomizations}
-          devLevel={devLevel}
+          levelData={userLevelData}
+          achievements={userLevelData ? getAchievements(userLevelData, userLevelData.stats) : []}
+          onCustomizationChange={async (customizations) => {
+            setSelectedCustomizations(customizations);
+            try {
+              await userDataService.saveUserCustomizations(customizations);
+            } catch (error) {
+              console.error('Error saving customizations:', error);
+            }
+          }}
         />
 
 
@@ -637,7 +690,7 @@ const StudyApp = () => {
             flashcards={flashcards}
             studyLogs={studyLogs}
             availableCategories={availableCategories}
-            streakData={{ current: devStats.currentStreak, longest: devStats.longestStreak }}
+            streakData={{ current: userLevelData?.stats?.currentStreak || 0, longest: userLevelData?.stats?.longestStreak || 0 }}
             onTabChange={setActiveTab}
             blurts={blurts}
           />
@@ -681,10 +734,11 @@ const StudyApp = () => {
             studyLogs={studyLogs}
             flashcards={flashcards}
             blurts={blurts}
-            streakData={{ current: devStats.currentStreak, longest: devStats.longestStreak }}
+            streakData={{ current: userLevelData?.stats?.currentStreak || 0, longest: userLevelData?.stats?.longestStreak || 0 }}
             selectedCustomizations={selectedCustomizations}
             onCustomizationChange={handleCustomizationChange}
-            devLevel={devLevel}
+            levelData={userLevelData}
+            user={user}
           />
         )}
 
@@ -712,7 +766,6 @@ const StudyApp = () => {
             }
           }}
           onSetAchievements={async (achievements) => {
-            setDevAchievements(achievements);
             try {
               await userDataService.saveUserAchievements(achievements);
             } catch (error) {
@@ -720,17 +773,16 @@ const StudyApp = () => {
             }
           }}
           onSetStats={async (stats) => {
-            setDevStats(stats);
             try {
               await userDataService.saveUserProgress(stats);
             } catch (error) {
               console.error('Error saving user stats:', error);
             }
           }}
-          currentLevel={devLevel}
+          currentLevel={userLevelData?.level || 1}
           selectedCustomizations={selectedCustomizations}
-          achievements={devAchievements}
-          stats={devStats}
+          achievements={userLevelData ? getAchievements(userLevelData, userLevelData.stats) : []}
+          stats={userLevelData?.stats || {}}
         />
         */}
       </div>
@@ -989,9 +1041,9 @@ const FlashcardsTab = ({ flashcards, availableCategories, onAddFlashcard, onUpda
     if (!card) return null;
     
     return (
-      <div className="fixed inset-0 bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 z-50 flex flex-col">
-        {/* Header */}
-        <div className="absolute top-0 left-0 right-0 bg-black/20 backdrop-blur-xl border-b border-white/10 p-6">
+      <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-gray-900 to-black z-50 flex flex-col">
+        {/* Dungeon Header */}
+        <div className="absolute top-0 left-0 right-0 bg-black/30 backdrop-blur-xl border-b border-amber-500/30 p-6">
           <div className="max-w-6xl mx-auto flex justify-between items-center">
             <button
               onClick={() => {
@@ -1001,33 +1053,33 @@ const FlashcardsTab = ({ flashcards, availableCategories, onAddFlashcard, onUpda
                 setCurrentStudyMode('flashcard');
                 setUserAnswer('');
               }}
-              className="bg-gradient-to-r from-gray-500/80 to-gray-600/80 backdrop-blur-sm text-white px-6 py-3 rounded-2xl hover:from-gray-600/90 hover:to-gray-700/90 transition-all duration-300 font-bold shadow-lg hover:shadow-gray-500/50 transform hover:scale-105 flex items-center"
+              className="bg-gradient-to-r from-amber-600/80 to-orange-600/80 backdrop-blur-sm text-white px-6 py-3 rounded border-2 border-amber-400/50 hover:from-amber-700/90 hover:to-orange-700/90 transition-all duration-300 font-mono font-bold shadow-lg hover:shadow-amber-500/50 transform hover:scale-105 flex items-center"
             >
-              ← 🏠 Exit Study
+              ← 🏰 EXIT DUNGEON
             </button>
             <div className="text-center">
-              <div className="text-white font-bold text-xl">
-                {currentCard + 1} of {studyCards.length}
+              <div className="text-amber-400 font-mono font-bold text-xl">
+                ROOM {currentCard + 1} of {studyCards.length}
               </div>
-              <div className="text-white/80 text-sm">
-                {selectedCategory === 'all' ? 'All Cards' : selectedCategory}
-              </div>
-            </div>
-            
+              <div className="text-amber-300/80 text-sm font-mono">
+                {selectedCategory === 'all' ? 'ALL CHAMBERS' : selectedCategory.toUpperCase()}
+          </div>
+        </div>
+
             {/* Study Mode Switcher */}
             <div className="flex space-x-2">
               {[
-                { id: 'flashcard', name: 'Review', icon: '📚' },
-                { id: 'cloze', name: 'Cloze', icon: '✏️' },
-                { id: 'concept', name: 'Explain', icon: '💡' }
+                { id: 'flashcard', name: 'EXAMINE', icon: '⚔️' },
+                { id: 'cloze', name: 'DECIPHER', icon: '🔍' },
+                { id: 'concept', name: 'RECALL', icon: '🧠' }
               ].map(mode => (
                 <button
                   key={mode.id}
                   onClick={() => switchStudyMode(mode.id)}
-                  className={`px-4 py-2 rounded-xl font-bold text-sm transition-all duration-300 ${
+                  className={`px-4 py-2 rounded border-2 font-mono font-bold text-sm transition-all duration-300 ${
                     currentStudyMode === mode.id
-                      ? 'bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-lg'
-                      : 'bg-white/10 backdrop-blur-sm text-white/80 hover:bg-white/20'
+                      ? 'bg-amber-500/30 text-amber-300 border-amber-400/50 shadow-lg'
+                      : 'bg-amber-900/20 backdrop-blur-sm text-amber-400/80 hover:bg-amber-500/20 border-amber-400/30'
                   }`}
                 >
                   <span className="mr-1">{mode.icon}</span>
@@ -1041,76 +1093,79 @@ const FlashcardsTab = ({ flashcards, availableCategories, onAddFlashcard, onUpda
         {/* Main Study Area */}
         <div className="flex-1 flex items-center justify-center pt-20 pb-8 px-6">
           <div className="max-w-4xl w-full">
-            {/* Progress Bar */}
+            {/* Dungeon Progress */}
             <div className="mb-8">
-              <div className="w-full bg-white/10 rounded-full h-3 mb-4">
+              <div className="w-full bg-black/50 border border-amber-400/30 rounded h-4 mb-4">
                 <div 
-                  className="bg-gradient-to-r from-blue-500 to-cyan-600 h-3 rounded-full transition-all duration-500"
+                  className="bg-gradient-to-r from-amber-400 to-orange-500 h-4 rounded transition-all duration-500"
                   style={{ width: `${((currentCard + 1) / studyCards.length) * 100}%` }}
                 ></div>
               </div>
+              <div className="text-center text-amber-300 font-mono text-sm">
+                DUNGEON PROGRESS: {Math.round(((currentCard + 1) / studyCards.length) * 100)}%
+              </div>
             </div>
 
-            {/* Card */}
-            <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl rounded-3xl border border-white/20 p-12 min-h-96 flex flex-col justify-center items-center text-center shadow-2xl relative overflow-hidden">
-              {/* Background Pattern */}
-              <div className="absolute inset-0 opacity-5">
-                <div className="absolute top-4 left-4 w-32 h-32 bg-blue-400 rounded-full blur-3xl"></div>
-                <div className="absolute bottom-4 right-4 w-24 h-24 bg-purple-400 rounded-full blur-3xl"></div>
+            {/* Dungeon Chamber */}
+            <div className="bg-gradient-to-br from-amber-900/20 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-12 min-h-96 flex flex-col justify-center items-center text-center shadow-2xl relative overflow-hidden">
+              {/* Dungeon Atmosphere */}
+              <div className="absolute inset-0 opacity-10">
+                <div className="absolute top-4 left-4 w-32 h-32 bg-amber-400 rounded-full blur-3xl animate-pulse"></div>
+                <div className="absolute bottom-4 right-4 w-24 h-24 bg-orange-400 rounded-full blur-3xl animate-pulse animation-delay-1000"></div>
               </div>
               
-              {/* Subject Tags */}
+              {/* Dungeon Tags */}
               <div className="mb-8 flex flex-wrap items-center justify-center gap-3 relative z-10">
-                <span className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-4 py-2 rounded-full font-bold">
-                  {card.subject}
+                <span className="bg-gradient-to-r from-amber-600 to-orange-600 text-white px-4 py-2 rounded border border-amber-400/50 font-mono font-bold">
+                  {card.subject.toUpperCase()}
+            </span>
+                          {card.reviewCount > 0 && (
+                  <span className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 py-2 rounded border border-green-400/50 font-mono font-bold">
+                    EXPLORED {card.reviewCount} TIMES
                 </span>
-                {card.reviewCount > 0 && (
-                  <span className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-full font-bold">
-                    Reviewed {card.reviewCount} times
-                  </span>
-                )}
-              </div>
-              
+              )}
+          </div>
+          
               {/* Study Mode Content */}
               {currentStudyMode === 'flashcard' && (
                 <>
-                  {/* Card Content */}
-                  <div className="text-3xl font-bold text-white mb-12 min-h-32 flex items-center justify-center leading-relaxed max-w-3xl relative z-10">
-                    {showAnswer ? card.back : card.front}
-                  </div>
+                  {/* Dungeon Scroll Content */}
+                  <div className="text-3xl font-bold text-amber-300 mb-12 min-h-32 flex items-center justify-center leading-relaxed max-w-3xl relative z-10 font-mono">
+            {showAnswer ? card.back : card.front}
+          </div>
 
-                  {/* Action Buttons */}
-                  {!showAnswer ? (
-                    <button
-                      onClick={() => setShowAnswer(true)}
-                      className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-12 py-6 rounded-2xl hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 font-bold text-xl shadow-2xl hover:shadow-blue-500/50 transform hover:scale-105 relative z-10"
-                    >
-                      Show Answer
-                    </button>
-                  ) : (
+                  {/* Dungeon Actions */}
+          {!showAnswer ? (
+            <button
+              onClick={() => setShowAnswer(true)}
+                      className="bg-gradient-to-r from-amber-600 to-orange-600 text-white px-12 py-6 rounded border-2 border-amber-400/50 hover:from-amber-700 hover:to-orange-700 transition-all duration-300 font-mono font-bold text-xl shadow-2xl hover:shadow-amber-500/50 transform hover:scale-105 relative z-10"
+            >
+                      🔍 REVEAL SECRET
+            </button>
+          ) : (
                     <div className="space-y-8 relative z-10">
-                      <p className="text-white/90 mb-8 text-xl font-medium">How well did you remember this?</p>
+                      <p className="text-amber-300 mb-8 text-xl font-mono font-bold">How well did you master this knowledge?</p>
                       <div className="flex flex-col sm:flex-row gap-6 mb-8">
-                        <button 
-                          onClick={() => handleReview('hard')}
-                          className="bg-gradient-to-r from-red-500 to-pink-600 text-white px-10 py-6 rounded-2xl hover:from-red-600 hover:to-pink-700 transition-all duration-300 font-bold text-lg shadow-2xl hover:shadow-red-500/50 transform hover:scale-105"
-                        >
-                          😰 Hard
-                        </button>
-                        <button 
-                          onClick={() => handleReview('medium')}
-                          className="bg-gradient-to-r from-yellow-500 to-orange-600 text-white px-10 py-6 rounded-2xl hover:from-yellow-600 hover:to-orange-700 transition-all duration-300 font-bold text-lg shadow-2xl hover:shadow-yellow-500/50 transform hover:scale-105"
-                        >
-                          😐 Medium
-                        </button>
-                        <button 
-                          onClick={() => handleReview('easy')}
-                          className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-10 py-6 rounded-2xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 font-bold text-lg shadow-2xl hover:shadow-green-500/50 transform hover:scale-105"
-                        >
-                          😊 Easy
-                        </button>
-                      </div>
-                    </div>
+                <button 
+                  onClick={() => handleReview('hard')}
+                          className="bg-gradient-to-r from-red-600 to-red-700 text-white px-10 py-6 rounded border-2 border-red-400/50 hover:from-red-700 hover:to-red-800 transition-all duration-300 font-mono font-bold text-lg shadow-2xl hover:shadow-red-500/50 transform hover:scale-105"
+                >
+                          ⚔️ CHALLENGING
+                </button>
+                <button 
+                  onClick={() => handleReview('medium')}
+                          className="bg-gradient-to-r from-amber-600 to-orange-600 text-white px-10 py-6 rounded border-2 border-amber-400/50 hover:from-amber-700 hover:to-orange-700 transition-all duration-300 font-mono font-bold text-lg shadow-2xl hover:shadow-amber-500/50 transform hover:scale-105"
+                >
+                          🛡️ MODERATE
+                </button>
+                <button 
+                  onClick={() => handleReview('easy')}
+                          className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-10 py-6 rounded border-2 border-green-400/50 hover:from-green-700 hover:to-emerald-700 transition-all duration-300 font-mono font-bold text-lg shadow-2xl hover:shadow-green-500/50 transform hover:scale-105"
+                >
+                          🏆 MASTERED
+                </button>
+              </div>
+            </div>
                   )}
                 </>
               )}
@@ -1145,7 +1200,7 @@ const FlashcardsTab = ({ flashcards, availableCategories, onAddFlashcard, onUpda
                       </div>
                       <button
                         onClick={checkClozeAnswer}
-                        className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-12 py-4 rounded-2xl hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 font-bold text-lg shadow-2xl hover:shadow-blue-500/50 transform hover:scale-105"
+                        className="bg-gradient-to-r from-amber-600 to-orange-700 text-white px-12 py-4 rounded border-2 border-amber-400/50 hover:from-amber-700 hover:to-orange-800 transition-all duration-300 font-mono font-bold text-lg shadow-2xl hover:shadow-amber-500/50 transform hover:scale-105"
                       >
                         Check Answer
                       </button>
@@ -1210,7 +1265,7 @@ const FlashcardsTab = ({ flashcards, availableCategories, onAddFlashcard, onUpda
                     </div>
                     <button
                       onClick={() => setShowAnswer(true)}
-                      className="bg-gradient-to-r from-purple-500 to-pink-600 text-white px-12 py-4 rounded-2xl hover:from-purple-600 hover:to-pink-700 transition-all duration-300 font-bold text-lg shadow-2xl hover:shadow-purple-500/50 transform hover:scale-105"
+                      className="bg-gradient-to-r from-amber-600 to-orange-700 text-white px-12 py-4 rounded border-2 border-amber-400/50 hover:from-amber-700 hover:to-orange-800 transition-all duration-300 font-mono font-bold text-lg shadow-2xl hover:shadow-amber-500/50 transform hover:scale-105"
                     >
                       Show Answer
                     </button>
@@ -1245,20 +1300,20 @@ const FlashcardsTab = ({ flashcards, availableCategories, onAddFlashcard, onUpda
                 </>
               )}
 
-              {/* Navigation */}
+              {/* Dungeon Navigation */}
               <div className="flex flex-col sm:flex-row gap-4 mt-12 relative z-10">
-                <button 
-                  onClick={prevCard} 
-                  className="bg-gradient-to-r from-gray-500/80 to-gray-600/80 backdrop-blur-sm text-white px-8 py-4 rounded-2xl hover:from-gray-600/90 hover:to-gray-700/90 transition-all duration-300 font-bold shadow-lg hover:shadow-gray-500/50 transform hover:scale-105"
-                >
-                  ← Previous
-                </button>
-                <button 
-                  onClick={nextCard} 
-                  className="bg-gradient-to-r from-gray-500/80 to-gray-600/80 backdrop-blur-sm text-white px-8 py-4 rounded-2xl hover:from-gray-600/90 hover:to-gray-700/90 transition-all duration-300 font-bold shadow-lg hover:shadow-gray-500/50 transform hover:scale-105"
-                >
-                  Next →
-                </button>
+            <button 
+              onClick={prevCard} 
+                  className="bg-gradient-to-r from-amber-600/80 to-orange-600/80 backdrop-blur-sm text-white px-8 py-4 rounded border-2 border-amber-400/50 hover:from-amber-700/90 hover:to-orange-700/90 transition-all duration-300 font-mono font-bold shadow-lg hover:shadow-amber-500/50 transform hover:scale-105"
+            >
+                  ← PREVIOUS CHAMBER
+            </button>
+            <button 
+              onClick={nextCard} 
+                  className="bg-gradient-to-r from-amber-600/80 to-orange-600/80 backdrop-blur-sm text-white px-8 py-4 rounded border-2 border-amber-400/50 hover:from-amber-700/90 hover:to-orange-700/90 transition-all duration-300 font-mono font-bold shadow-lg hover:shadow-amber-500/50 transform hover:scale-105"
+            >
+                  NEXT CHAMBER →
+            </button>
               </div>
             </div>
           </div>
@@ -1269,8 +1324,8 @@ const FlashcardsTab = ({ flashcards, availableCategories, onAddFlashcard, onUpda
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">
-      {/* Header Section */}
-      <div className="bg-gradient-to-br from-purple-500/20 to-indigo-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-8 shadow-2xl">
+      {/* Dungeon Header Section */}
+      <div className="bg-gradient-to-br from-amber-900/20 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-8 shadow-2xl">
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center space-y-6 lg:space-y-0">
           <div>
             <h2 className="text-4xl font-black text-white mb-2 flex items-center">
@@ -1287,34 +1342,34 @@ const FlashcardsTab = ({ flashcards, availableCategories, onAddFlashcard, onUpda
               if (categoryCards.length === 0) return null;
               
               return (
-                <button
+              <button
                   key={category}
-                  onClick={() => {
+                onClick={() => {
                     setSelectedCategory(category);
                     setStudyMode(true);
-                    setCurrentCard(0);
-                  }}
+                  setCurrentCard(0);
+                }}
                   className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3 rounded-2xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 font-bold shadow-lg hover:shadow-green-500/50 transform hover:scale-105 flex items-center"
-                >
+              >
                   <Brain className="mr-2" size={20} />
                   Study {category === 'all' ? 'All' : category} ({categoryCards.length})
-                </button>
+              </button>
               );
             })}
 
             <button
               onClick={() => setShowForm(true)}
-              className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-6 py-3 rounded-2xl hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 font-bold shadow-lg hover:shadow-blue-500/50 transform hover:scale-105 flex items-center"
+              className="bg-gradient-to-r from-amber-600 to-orange-700 text-white px-6 py-3 rounded border-2 border-amber-400/50 hover:from-amber-700 hover:to-orange-800 transition-all duration-300 font-mono font-bold shadow-lg hover:shadow-amber-500/50 transform hover:scale-105 flex items-center"
             >
               <Plus className="mr-2" size={20} />
-              Add Card
+                              Add Card
             </button>
           </div>
         </div>
       </div>
 
-      {/* Search and Filter */}
-      <div className="bg-gradient-to-br from-blue-500/20 to-cyan-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-6 shadow-2xl">
+      {/* Dungeon Search and Filter */}
+      <div className="bg-gradient-to-br from-amber-900/20 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-6 shadow-2xl">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
@@ -1378,7 +1433,7 @@ const FlashcardsTab = ({ flashcards, availableCategories, onAddFlashcard, onUpda
                 <button
                   type="button"
                   onClick={() => setShowHighlighting(!showHighlighting)}
-                  className="bg-gradient-to-r from-purple-500 to-pink-600 text-white px-4 py-2 rounded-xl hover:from-purple-600 hover:to-pink-700 transition-all duration-300 font-bold text-sm"
+                  className="bg-gradient-to-r from-amber-600 to-orange-700 text-white px-4 py-2 rounded border-2 border-amber-400/50 hover:from-amber-700 hover:to-orange-800 transition-all duration-300 font-mono font-bold text-sm"
                 >
                   {showHighlighting ? 'Hide Highlighting' : 'Show Highlighting'}
                 </button>
@@ -1473,18 +1528,18 @@ const FlashcardsTab = ({ flashcards, availableCategories, onAddFlashcard, onUpda
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredCards.map(card => {
           return (
-            <div key={card.id} className="bg-gradient-to-br from-purple-500/20 to-indigo-600/20 backdrop-blur-xl rounded-3xl border-purple-500/30 p-6 shadow-2xl hover:shadow-indigo-500/25 transition-all duration-300 transform hover:-translate-y-1 hover:scale-105 group animate-bounce-in relative overflow-hidden">
+            <div key={card.id} className="bg-gradient-to-br from-amber-900/20 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-6 shadow-2xl hover:shadow-amber-500/25 transition-all duration-300 transform hover:-translate-y-1 hover:scale-105 group animate-bounce-in relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
               <div className="flex justify-between items-start mb-4 relative z-10">
                 <div className="flex flex-wrap gap-2">
-                  <span className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-3 py-1 rounded-full text-sm font-bold">
+                  <span className="bg-gradient-to-r from-amber-600 to-orange-700 text-white px-3 py-1 rounded border-2 border-amber-400/50 text-sm font-mono font-bold">
                     {card.subject}
                   </span>
-                  {card.reviewCount > 0 && (
-                    <span className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-1 rounded-full text-sm font-bold">
-                      {card.reviewCount} reviews
-                    </span>
-                  )}
+                                      {card.reviewCount > 0 && (
+                      <span className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-1 rounded-full text-sm font-bold">
+                        {card.reviewCount} reviews
+                      </span>
+                    )}
                 </div>
                 <div className="flex space-x-2">
                   <button
@@ -1531,7 +1586,7 @@ const FlashcardsTab = ({ flashcards, availableCategories, onAddFlashcard, onUpda
           {flashcards.length === 0 && (
             <button
               onClick={() => setShowForm(true)}
-              className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white px-8 py-4 rounded-2xl hover:from-blue-600 hover:to-cyan-700 transition-all duration-300 font-bold shadow-lg hover:shadow-blue-500/50 transform hover:scale-105"
+              className="bg-gradient-to-r from-amber-600 to-orange-700 text-white px-8 py-4 rounded border-2 border-amber-400/50 hover:from-amber-700 hover:to-orange-800 transition-all duration-300 font-mono font-bold shadow-lg hover:shadow-amber-500/50 transform hover:scale-105"
             >
               Create First Card
             </button>
@@ -1573,8 +1628,8 @@ const PomodoroTab = ({ time, isActive, onToggle, onReset, formatTime, onAddStudy
         </p>
       </div>
       
-      {/* Session Length Selection */}
-      <div className="bg-gradient-to-br from-blue-500/20 to-cyan-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-8 shadow-2xl animate-slide-up" style={{animationDelay: '0.1s'}}>
+      {/* Dungeon Session Length Selection */}
+      <div className="bg-gradient-to-br from-amber-900/20 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-8 shadow-2xl animate-slide-up" style={{animationDelay: '0.1s'}}>
         <h3 className="text-3xl font-bold text-white mb-6 text-center">Session Length</h3>
         <div className="flex flex-wrap justify-center gap-4">
           {[15, 25, 45, 60].map(minutes => (
@@ -1583,8 +1638,8 @@ const PomodoroTab = ({ time, isActive, onToggle, onReset, formatTime, onAddStudy
               onClick={() => onSetCustomTimer(minutes)}
               className={`px-8 py-4 rounded-2xl font-bold text-lg transition-all duration-300 transform hover:scale-105 ${
                 customInterval === minutes
-                  ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/50'
-                  : 'bg-white/10 backdrop-blur-sm text-white/80 hover:bg-white/20 border border-white/20'
+                  ? 'bg-gradient-to-r from-amber-600 to-orange-700 text-white border-amber-400/50 shadow-lg shadow-amber-500/50'
+                  : 'bg-amber-900/20 backdrop-blur-sm text-amber-300/80 hover:bg-amber-500/20 border-2 border-amber-400/30'
               }`}
             >
               {minutes} min
@@ -1593,44 +1648,44 @@ const PomodoroTab = ({ time, isActive, onToggle, onReset, formatTime, onAddStudy
         </div>
       </div>
       
-      {/* Main Timer */}
-      <div className="bg-gradient-to-br from-purple-500/20 to-pink-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-12 shadow-2xl animate-slide-up text-center" style={{animationDelay: '0.2s'}}>
+      {/* Dungeon Focus Chamber */}
+      <div className="bg-gradient-to-br from-amber-900/20 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-12 shadow-2xl animate-slide-up text-center" style={{animationDelay: '0.2s'}}>
 
         
         <div className="relative inline-block mb-8">
-          <div className="text-8xl md:text-9xl font-black text-white mb-6 animate-pulse">
+          <div className="text-8xl md:text-9xl font-black text-amber-400 mb-6 animate-pulse font-mono">
             {formatTime(time)}
           </div>
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-400/20 via-pink-400/20 to-purple-400/20 blur-3xl animate-pulse"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-amber-400/20 via-orange-400/20 to-amber-400/20 blur-3xl animate-pulse"></div>
         </div>
         
         <div className="flex flex-col sm:flex-row justify-center gap-6 mb-8">
           <button
             onClick={onToggle}
-            className={`flex items-center justify-center px-10 py-5 rounded-2xl text-white font-bold text-xl transition-all duration-300 shadow-2xl transform hover:scale-105 ${
+            className={`flex items-center justify-center px-10 py-5 rounded border-2 text-white font-mono font-bold text-xl transition-all duration-300 shadow-2xl transform hover:scale-105 ${
               isActive 
-                ? 'bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 hover:shadow-red-500/50' 
-                : 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 hover:shadow-green-500/50'
+                ? 'bg-gradient-to-r from-red-600 to-red-700 border-red-400/50 hover:from-red-700 hover:to-red-800 hover:shadow-red-500/50' 
+                : 'bg-gradient-to-r from-amber-600 to-orange-600 border-amber-400/50 hover:from-amber-700 hover:to-orange-700 hover:shadow-amber-500/50'
             }`}
           >
             {isActive ? <Pause className="mr-3" size={24} /> : <Play className="mr-3" size={24} />}
-            {isActive ? 'Pause' : 'Start Focus'}
+            {isActive ? '⏸️ PAUSE QUEST' : '⚔️ BEGIN QUEST'}
           </button>
           
           <button
             onClick={onReset}
-            className="flex items-center justify-center px-10 py-5 rounded-2xl bg-gradient-to-r from-gray-500 to-gray-600 text-white font-bold text-xl hover:from-gray-600 hover:to-gray-700 transition-all duration-300 shadow-2xl hover:shadow-gray-500/50 transform hover:scale-105"
+            className="flex items-center justify-center px-10 py-5 rounded border-2 border-amber-400/50 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-mono font-bold text-xl hover:from-amber-700 hover:to-orange-700 transition-all duration-300 shadow-2xl hover:shadow-amber-500/50 transform hover:scale-105"
           >
             <RotateCcw className="mr-3" size={24} />
-            Reset
+            🔄 RESTART
           </button>
         </div>
 
         <button
           onClick={() => setShowLogForm(true)}
-          className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-8 py-4 rounded-2xl hover:from-indigo-600 hover:to-purple-700 transition-all duration-300 font-bold shadow-lg hover:shadow-indigo-500/50 transform hover:scale-105"
+          className="bg-gradient-to-r from-amber-600 to-orange-600 text-white px-8 py-4 rounded border-2 border-amber-400/50 hover:from-amber-700 hover:to-orange-700 transition-all duration-300 font-mono font-bold shadow-lg hover:shadow-amber-500/50 transform hover:scale-105"
         >
-          Log Study Session
+          📜 RECORD QUEST
         </button>
       </div>
 
@@ -1750,8 +1805,8 @@ const BlurtsTab = ({ blurts, onAddBlurt, onDeleteBlurt }) => {
         </div>
       </div>
 
-      {/* Add New Blurt Form */}
-      <div className="bg-gradient-to-br from-purple-500/20 to-pink-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-8 shadow-2xl animate-slide-up" style={{animationDelay: '0.1s'}}>
+      {/* Dungeon Add New Blurt Form */}
+      <div className="bg-gradient-to-br from-amber-900/20 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-8 shadow-2xl animate-slide-up" style={{animationDelay: '0.1s'}}>
                   <h3 className="text-3xl font-bold text-white mb-6 flex items-center">
             Capture Your Thoughts
           </h3>
@@ -1781,7 +1836,7 @@ const BlurtsTab = ({ blurts, onAddBlurt, onDeleteBlurt }) => {
               <button
                 onClick={handleSubmit}
                 disabled={saving}
-                className="bg-gradient-to-r from-purple-500 to-pink-600 text-white px-8 py-4 rounded-2xl hover:from-purple-600 hover:to-pink-700 transition-all duration-300 font-bold shadow-lg hover:shadow-purple-500/50 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                className="bg-gradient-to-r from-amber-600 to-orange-700 text-white px-8 py-4 rounded border-2 border-amber-400/50 hover:from-amber-700 hover:to-orange-800 transition-all duration-300 font-mono font-bold shadow-lg hover:shadow-amber-500/50 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
                 <Save className="mr-2" size={20} />
                 {saving ? 'Saving...' : 'Save Blurt'}
@@ -1793,7 +1848,7 @@ const BlurtsTab = ({ blurts, onAddBlurt, onDeleteBlurt }) => {
 
       {/* Search and Filter */}
       {blurts.length > 0 && (
-        <div className="bg-gradient-to-br from-cyan-500/20 to-blue-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-6 shadow-2xl animate-slide-up" style={{animationDelay: '0.2s'}}>
+        <div className="bg-gradient-to-br from-amber-900/20 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-6 shadow-2xl animate-slide-up" style={{animationDelay: '0.2s'}}>
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
@@ -1835,10 +1890,10 @@ const BlurtsTab = ({ blurts, onAddBlurt, onDeleteBlurt }) => {
           </div>
         ) : (
           filteredBlurts.map((blurt, index) => (
-            <div key={blurt.id} className="bg-gradient-to-br from-indigo-500/20 to-purple-600/20 backdrop-blur-xl rounded-3xl border border-white/20 p-6 shadow-2xl hover:shadow-indigo-500/25 transition-all duration-300 transform hover:-translate-y-1 hover:scale-105 group animate-bounce-in relative overflow-hidden" style={{animationDelay: `${index * 0.1}s`}}>
+            <div key={blurt.id} className="bg-gradient-to-br from-amber-900/20 to-black/50 backdrop-blur-xl rounded-lg border-2 border-amber-400/50 p-6 shadow-2xl hover:shadow-amber-500/25 transition-all duration-300 transform hover:-translate-y-1 hover:scale-105 group animate-bounce-in relative overflow-hidden" style={{animationDelay: `${index * 0.1}s`}}>
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
               <div className="flex justify-between items-start mb-4 relative z-10">
-                <span className="bg-gradient-to-r from-purple-500 to-pink-600 text-white px-3 py-1 rounded-full text-sm font-bold">
+                <span className="bg-gradient-to-r from-amber-600 to-orange-700 text-white px-3 py-1 rounded border-2 border-amber-400/50 text-sm font-mono font-bold">
                   {blurt.subject}
                 </span>
                 <div className="flex items-center space-x-3">
