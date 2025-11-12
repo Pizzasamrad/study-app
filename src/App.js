@@ -14,6 +14,7 @@ import * as userDataService from './services/userDataService';
 import { calculateTotalXP, calculateLevel, getAchievements, getLevelStats } from './services/levelService';
 import './animations.css';
 import { FEATURES } from './config/features';
+import { Analytics } from "@vercel/analytics/react"
 
 const StudyApp = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
