@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Brain, Plus, Play, Pause, RotateCcw, Save, Edit3, Trash2, Search, Star, Trophy, Award, Flame } from 'lucide-react';
+import { Analytics } from '@vercel/analytics/react';
 import { auth, onAuthStateChanged } from './firebase';
 import AuthModal from './components/Auth/AuthModal';
+import { initGA } from './utils/analytics';
 
 import SmartAnalytics from './components/Analytics/SmartAnalytics';
 import CustomizationTab from './components/Customization/CustomizationTab';
@@ -134,6 +136,10 @@ const StudyApp = () => {
   useEffect(() => {
     const initApp = async () => {
       setIsLoading(true);
+      
+      // Initialize Google Analytics
+      const gaTrackingId = process.env.REACT_APP_GA_TRACKING_ID || 'G-66L576FZZX';
+      initGA(gaTrackingId);
       
       // Initialize storage mode
       const mode = await storageService.initStorageMode();
@@ -1918,6 +1924,7 @@ const BlurtsTab = ({ blurts, onAddBlurt, onDeleteBlurt }) => {
           ))
         )}
       </div>
+      <Analytics />
     </div>
   );
 };
