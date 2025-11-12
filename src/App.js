@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Brain, Plus, Play, Pause, RotateCcw, Save, Edit3, Trash2, Search, Star, Trophy, Award, Flame } from 'lucide-react';
-import { Analytics } from '@vercel/analytics/react';
-import { SpeedInsights } from '@vercel/speed-insights/react';
 import { auth, onAuthStateChanged } from './firebase';
 import AuthModal from './components/Auth/AuthModal';
 
@@ -567,12 +565,12 @@ const StudyApp = () => {
 
     const getIcon = () => {
       switch (data.type) {
-        case 'streak': return <Flame className="text-orange-500" size={48} />;
-        case 'first_card': return <Brain className="text-blue-500" size={48} />;
-        case 'milestone': return <Trophy className="text-yellow-500" size={48} />;
-        case 'first_review': return <Star className="text-purple-500" size={48} />;
-        case 'review_master': return <Award className="text-green-500" size={48} />;
-        default: return <Trophy className="text-yellow-500" size={48} />;
+        case 'streak': return (<Flame className="text-orange-500" size={48} />);
+        case 'first_card': return (<Brain className="text-blue-500" size={48} />);
+        case 'milestone': return (<Trophy className="text-yellow-500" size={48} />);
+        case 'first_review': return (<Star className="text-purple-500" size={48} />);
+        case 'review_master': return (<Award className="text-green-500" size={48} />);
+        default: return (<Trophy className="text-yellow-500" size={48} />);
       }
     };
 
@@ -611,10 +609,7 @@ const StudyApp = () => {
   };
 
   return (
-    <>
-      <Analytics />
-      <SpeedInsights />
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black relative overflow-hidden">
       {/* Dungeon Crawler Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
         {/* Dungeon torch flames */}
@@ -1924,7 +1919,6 @@ const BlurtsTab = ({ blurts, onAddBlurt, onDeleteBlurt }) => {
         )}
       </div>
     </div>
-    </>
   );
 };
 
